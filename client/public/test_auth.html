@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testMe()">Test /api/auth/me.php</button>
+    <div id="output"></div>
+
+    <script>
+        async function testLogin() {
+            const output = document.getElementById('output');
+            output.innerHTML = 'Testing login...';
+            
+            try {
+                const response = await fetch('/api/auth/login.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: 'admin@holyfamilyparish.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                output.innerHTML = `
+                    <h2>Login Response</h2>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <h3>Cookies:</h3>
+                    <pre>${document.cookie}</pre>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+
+        async function testMe() {
+            const output = document.getElementById('output');
+            output.innerHTML = 'Testing /api/auth/me.php...';
+            
+            try {
+                const response = await fetch('/api/auth/me.php', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                output.innerHTML = `
+                    <h2>/api/auth/me.php Response</h2>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <h3>Cookies:</h3>
+                    <pre>${document.cookie}</pre>
+                `;
+            } catch (error) {
+                output.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

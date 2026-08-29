@@ -1,0 +1,13 @@
+# Block direct access to reservation uploads
+# All files must be accessed through the PHP API
+Order Deny,Allow
+Deny from all
+
+# Prevent execution of any script files
+<FilesMatch "\.(php|php5|php4|php3|phtml|pl|py|cgi|sh|bash|exe|bat|cmd|js|jsp|html|htm)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Prevent directory browsing
+Options -Indexes

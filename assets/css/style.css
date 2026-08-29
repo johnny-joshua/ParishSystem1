@@ -1,0 +1,143 @@
+:root {
+    --parish-navy: #1a2744;
+    --parish-navy-light: #243556;
+    --parish-gold: #c9a227;
+    --parish-gold-hover: #b8921f;
+    --parish-cream: #f8f6f1;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--parish-cream);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.parish-navbar {
+    background: linear-gradient(135deg, var(--parish-navy) 0%, var(--parish-navy-light) 100%);
+    box-shadow: 0 2px 12px rgba(26, 39, 68, 0.25);
+}
+
+.navbar-brand .brand-text {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.btn-parish-gold {
+    background-color: var(--parish-gold);
+    border-color: var(--parish-gold);
+    color: var(--parish-navy);
+    font-weight: 600;
+}
+
+.btn-parish-gold:hover {
+    background-color: var(--parish-gold-hover);
+    border-color: var(--parish-gold-hover);
+    color: var(--parish-navy);
+}
+
+.btn-parish-primary {
+    background-color: var(--parish-navy);
+    border-color: var(--parish-navy);
+    color: #fff;
+}
+
+.btn-parish-primary:hover {
+    background-color: var(--parish-navy-light);
+    border-color: var(--parish-navy-light);
+    color: #fff;
+}
+
+.page-main {
+    flex: 1;
+}
+
+.hero-section {
+    background: linear-gradient(135deg, var(--parish-navy) 0%, #2d4a7c 100%);
+    color: #fff;
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+    margin-bottom: 2rem;
+}
+
+.hero-section h1 {
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.feature-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 16px rgba(26, 39, 68, 0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(26, 39, 68, 0.12);
+}
+
+.feature-icon {
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    background: rgba(201, 162, 39, 0.15);
+    color: var(--parish-gold);
+    font-size: 1.5rem;
+}
+
+.stat-card {
+    border: none;
+    border-left: 4px solid var(--parish-gold);
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.auth-card {
+    max-width: 480px;
+    margin: 0 auto;
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 32px rgba(26, 39, 68, 0.1);
+}
+
+.parish-footer {
+    background: var(--parish-navy);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.parish-footer .text-muted {
+    color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.card-panel {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 12px rgba(26, 39, 68, 0.08);
+}
+
+.card-panel .card-header {
+    background: var(--parish-navy);
+    color: #fff;
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+    font-weight: 600;
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--parish-navy);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--parish-navy);
+}

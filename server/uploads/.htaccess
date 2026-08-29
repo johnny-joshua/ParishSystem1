@@ -1,0 +1,19 @@
+# Block direct access to upload directory
+# All files must be accessed through the PHP API
+Order Deny,Allow
+Deny from all
+
+# Prevent execution of PHP files in uploads directory
+<FilesMatch "\.php$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Prevent execution of other script files
+<FilesMatch "\.(php|php5|php4|php3|phtml|pl|py|cgi|sh|bash|exe|bat|cmd|js|jsp)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Prevent directory browsing
+Options -Indexes
