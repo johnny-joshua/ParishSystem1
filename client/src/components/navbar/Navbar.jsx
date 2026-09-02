@@ -112,23 +112,23 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#0f2337]/95 backdrop-blur-xl shadow-[0_12px_28px_rgba(6,14,22,0.14)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-5 h-20">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-2 sm:gap-5 h-16 sm:h-20">
           {!user && <div className="w-0 md:w-0" aria-hidden="true" />}
 
           {user && (
-            <div className="flex items-center min-w-[180px]">
+            <div className="flex min-w-0 items-center lg:min-w-[180px] lg:shrink-0">
               <Link
                 to="/"
-                className="text-sm md:text-base font-display font-bold tracking-[0.08em] uppercase text-[#f7f3eb] transition-colors duration-200 hover:text-[#d7b57a]"
+                className="text-[10px] sm:text-sm md:text-base font-display font-bold tracking-[0.08em] uppercase text-[#f7f3eb] transition-colors duration-200 hover:text-[#d7b57a]"
               >
                 Holy Family Parish
               </Link>
             </div>
           )}
 
-          <div className="flex-1 flex justify-center">
-            <div className="flex items-center justify-center gap-2 md:gap-7 lg:gap-10 px-2 md:px-4">
+          <div className="flex-1 flex justify-center min-w-0">
+            <div className="hidden sm:flex items-center justify-center gap-1 md:gap-7 lg:gap-10 px-1 md:px-4">
               {!user && (
                 <>
                   <a
@@ -160,7 +160,7 @@ export default function Navbar() {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 min-w-[220px]">
+          <div className="flex items-center justify-end gap-2 sm:gap-3 min-w-0">
             {user ? (
               <div className="relative" ref={profileRef}>
                 <button

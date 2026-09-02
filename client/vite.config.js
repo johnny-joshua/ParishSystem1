@@ -7,8 +7,18 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost/parishSystem/server',
+        target: 'http://localhost/ParishSystem1/server',
         changeOrigin: true,
+        cookieDomainRewrite: 'localhost',
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            const cookies = proxyRes.headers['set-cookie'];
+            if (!cookies) return;
+            proxyRes.headers['set-cookie'] = cookies.map((cookie) =>
+              cookie.replace(/;\s*[Pp]ath=\/ParishSystem1[^;]*/g, '; Path=/')
+            );
+          });
+        },
       },
     },
   },

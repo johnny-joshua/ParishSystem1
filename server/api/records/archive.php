@@ -15,9 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $userId = (int) ($_GET['user_id'] ?? 0);
 $parishRecordId = (int) ($_GET['parish_record_id'] ?? 0);
+$reservationId = (int) ($_GET['reservation_id'] ?? 0);
 
 if ($parishRecordId > 0) {
     successResponse(getUnlinkedRecordDetail($db, $parishRecordId));
+}
+
+if ($reservationId > 0) {
+    successResponse(getReservationRecordDetail($db, $reservationId));
 }
 
 if ($userId > 0) {
@@ -30,7 +35,153 @@ $status = trim($_GET['status'] ?? '');
 $from = $_GET['from'] ?? '';
 $to = $_GET['to'] ?? '';
 
-successResponse(['records' => getParishionerRecordList($db, $q, $service, $status, $from, $to)]);
+successResponse(['records' => getReservationRecordList($db, $q, $service, $status, $from, $to)]);
+
+function getReservationRecordList(PDO $db, string $q, string $service, string $status, string $from, string $to): array
+{
+    $sql = 'SELECT r.id AS reservation_id, r.user_id, r.service_type, r.reservation_date,
+                   r.reservation_time, r.status, r.created_at,
+                   u.fullname, u.email, u.phone, u.address, r.requirements
+            FROM reservations r
+            INNER JOIN users u ON r.user_id = u.id
+            WHERE 1 = 1';
+    $params = [];
+
+    if ($q !== '') {
+        $sql .= ' AND (u.fullname LIKE ? OR u.email LIKE ? OR u.phone LIKE ? OR u.address LIKE ?
+            OR r.requirements LIKE ? OR r.service_type LIKE ? OR CAST(r.id AS CHAR) LIKE ?)';
+        $like = '%' . $q . '%';
+        $params = array_merge($params, [$like, $like, $like, $like, $like, $like, $like]);
+    }
+    if ($service !== '') {
+        $sql .= ' AND r.service_type = ?';
+        $params[] = $service;
+    }
+    if ($status !== '') {
+        $sql .= ' AND r.status = ?';
+        $params[] = $status;
+    }
+    if ($from !== '') {
+        $sql .= ' AND DATE(r.created_at) >= ?';
+        $params[] = $from;
+    }
+    if ($to !== '') {
+        $sql .= ' AND DATE(r.created_at) <= ?';
+        $params[] = $to;
+    }
+
+    $sql .= ' ORDER BY r.created_at DESC, r.id DESC';
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+
+    $records = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $records[] = [
+            'reservation_id' => (int) $row['reservation_id'],
+            'user_id' => (int) $row['user_id'],
+            'fullname' => reservationFolderName($row),
+            'parishioner_name' => $row['fullname'],
+            'email' => $row['email'],
+            'phone' => $row['phone'],
+            'address' => $row['address'],
+            'service_type' => $row['service_type'],
+            'status' => $row['status'],
+            'record_date' => $row['reservation_date'],
+            'record_time' => $row['reservation_time'],
+            'created_at' => $row['created_at'],
+            'latest_activity_at' => $row['created_at'],
+            'is_unlinked' => false,
+        ];
+    }
+
+    return array_merge($records, getUnlinkedParishRecords($db, $q, $service, $status, $from, $to));
+}
+
+function getReservationRecordDetail(PDO $db, int $reservationId): array
+{
+    $stmt = $db->prepare(
+        'SELECT r.*, u.id AS parishioner_id, u.fullname, u.email, u.phone, u.address,
+                u.created_at AS member_since
+         FROM reservations r
+         INNER JOIN users u ON r.user_id = u.id
+         WHERE r.id = ?
+         LIMIT 1'
+    );
+    $stmt->execute([$reservationId]);
+    $reservation = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$reservation) {
+        errorResponse('Reservation record not found.', 404);
+    }
+
+    $docStmt = $db->prepare(
+        'SELECT rd.*, r.service_type, r.reservation_date
+         FROM reservation_documents rd
+         INNER JOIN reservations r ON rd.reservation_id = r.id
+         WHERE rd.reservation_id = ?
+         ORDER BY rd.uploaded_at DESC'
+    );
+    $docStmt->execute([$reservationId]);
+    $documents = $docStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    return [
+        'parishioner' => [
+            'id' => (int) $reservation['parishioner_id'],
+            'fullname' => reservationFolderName($reservation),
+            'account_name' => $reservation['fullname'],
+            'email' => $reservation['email'],
+            'phone' => $reservation['phone'],
+            'address' => $reservation['address'],
+            'member_since' => $reservation['member_since'],
+        ],
+        'reservations' => [[
+            'id' => (int) $reservation['id'],
+            'service_type' => $reservation['service_type'],
+            'reservation_date' => $reservation['reservation_date'],
+            'reservation_time' => $reservation['reservation_time'],
+            'requirements' => $reservation['requirements'],
+            'status' => $reservation['status'],
+            'remarks' => $reservation['remarks'],
+            'created_at' => $reservation['created_at'],
+        ]],
+        'appointments' => [],
+        'parish_records' => [],
+        'documents' => formatDocumentRows($documents),
+        'file_count' => count($documents),
+    ];
+}
+
+function reservationFolderName(array $reservation): string
+{
+    $details = (string) ($reservation['requirements'] ?? '');
+    if (($reservation['service_type'] ?? '') === 'Marriage') {
+        $bride = extractRequirementValue($details, 'Bride Name') ?: 'Bride';
+        $groom = extractRequirementValue($details, 'Groom Name') ?: 'Groom';
+        return $bride . ' & ' . $groom;
+    }
+
+    $nameKeys = [
+        'Baptism' => ['Child Name', 'Parents / Guardians'],
+        'Funeral' => ['Deceased Name', 'Family Contact Person'],
+        'Mass Intention' => ['Intention Name / Requested For'],
+        'Private Mass' => ['Event / Occasion Name'],
+    ];
+    foreach ($nameKeys[$reservation['service_type'] ?? ''] ?? [] as $key) {
+        $value = extractRequirementValue($details, $key);
+        if ($value) return $value;
+    }
+
+    return (string) ($reservation['fullname'] ?? 'Parishioner');
+}
+
+function extractRequirementValue(string $requirements, string $label): ?string
+{
+    $pattern = '/^' . preg_quote($label, '/') . '\\s*:\\s*(.+)$/mi';
+    if (preg_match($pattern, $requirements, $matches)) {
+        $value = trim($matches[1]);
+        return $value !== '' ? $value : null;
+    }
+    return null;
+}
 
 function getParishionerRecordList(PDO $db, string $q, string $service, string $status, string $from, string $to): array
 {

@@ -196,9 +196,9 @@ function reservationDateAvailability(string $serviceType, string $date, array $b
 /**
  * Holy Family Parish — parish office appointment schedule.
  * 
- * Office hours: Monday to Friday, 8:00 AM to 5:00 PM
- * Closed: Saturday and Sunday
- * Time slots: 30-minute intervals starting at 8:00 AM
+ * Office hours: Monday and Wednesday to Saturday, 8:00 AM to 5:00 PM
+ * Closed: Tuesday and Sunday; lunch break: 11:00 AM to 1:00 PM
+ * Time slots: 30-minute intervals during the morning and afternoon windows
  */
 function allowedAppointmentSlots(string $date): array
 {
@@ -208,8 +208,8 @@ function allowedAppointmentSlots(string $date): array
     }
     $dow = (int) $d->format('w'); // 0=Sun ... 6=Sat
 
-    // Closed on Saturday and Sunday
-    if ($dow === 0 || $dow === 6) {
+    // Closed on Tuesday and Sunday
+    if ($dow === 0 || $dow === 2) {
         return [];
     }
 
@@ -219,13 +219,13 @@ function allowedAppointmentSlots(string $date): array
         return [];
     }
 
-    // Generate 30-minute slots from 8:00 AM to 5:00 PM
+    // Generate 30-minute slots for 8:00-11:00 AM and 1:00-5:00 PM.
     $slots = [];
-    $startHour = 8;
-    $endHour = 17; // 5:00 PM
-    for ($hour = $startHour; $hour < $endHour; $hour++) {
-        $slots[] = sprintf('%02d:00:00', $hour);
-        $slots[] = sprintf('%02d:30:00', $hour);
+    foreach ([[8, 11], [13, 17]] as [$startHour, $endHour]) {
+        for ($hour = $startHour; $hour < $endHour; $hour++) {
+            $slots[] = sprintf('%02d:00:00', $hour);
+            $slots[] = sprintf('%02d:30:00', $hour);
+        }
     }
 
     return array_values(array_unique($slots));

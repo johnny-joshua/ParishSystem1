@@ -132,18 +132,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $documentId = (int) $db->lastInsertId();
         
         $db->commit();
-
-        if (!$isAdmin) {
-            notifyAdmins(
-                $db,
-                'document',
-                'Document uploaded',
-                "{$auth['fullname']} uploaded {$documentName} for reservation #{$reservationId}.",
-                '/admin/reservations',
-                'reservation',
-                $reservationId
-            );
-        }
         
         successResponse([
             'id' => $documentId,
@@ -219,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
         
         $db->commit();
         
-        // Notify user of status change
+        // Notify the user only when the document status actually changes.
         $documentName = $document['document_name'];
         $docUserId = (int) $document['reservation_user_id'];
         
@@ -233,16 +221,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
             $smsMessage = "Your document ({$documentName}) was rejected. Please re-upload. Remarks: {$remarks}";
         }
 
-        createNotification(
-            $db,
-            $docUserId,
-            'document',
-            $title,
-            $message,
-            '/reservations',
-            'reservation',
-            (int) $document['reservation_id']
-        );
+        if ($statusChanged) {
+            createNotification(
+                $db,
+                $docUserId,
+                'document',
+                $title,
+                $message,
+                '/reservations',
+                'reservation_document',
+                $documentId
+            );
+        }
 
         // SMS only when document status actually changes
         if ($statusChanged) {

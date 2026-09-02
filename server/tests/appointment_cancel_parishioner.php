@@ -108,6 +108,38 @@ assertTrue(
     $results
 );
 
+// One cancellation creates one admin notification with the appointment details.
+$adminNotifications = request('GET', "$base/notifications/index.php", $cookieAdmin);
+$matchingCancellationNotifications = array_values(array_filter(
+    $adminNotifications['body']['data']['notifications'] ?? [],
+    static fn(array $notification): bool =>
+        ($notification['type'] ?? '') === 'appointment_cancelled'
+        && (int) ($notification['reference_id'] ?? 0) === $pendingId
+));
+assertTrue(count($matchingCancellationNotifications) === 1, 'One admin cancellation notification', $results);
+if (count($matchingCancellationNotifications) === 1) {
+    $notification = $matchingCancellationNotifications[0];
+    $notificationMessage = (string) ($notification['message'] ?? '');
+    assertTrue(str_contains($notificationMessage, 'Cancel User A'), 'Cancellation notification contains parishioner name', $results);
+    assertTrue(str_contains($notificationMessage, 'Pending cancel test'), 'Cancellation notification contains purpose', $results);
+    assertTrue(str_contains($notificationMessage, $slot1['date']), 'Cancellation notification contains date', $results);
+    assertTrue(str_contains($notificationMessage, substr($slot1['time'], 0, 5)), 'Cancellation notification contains time', $results);
+}
+
+$repeatCancel = request('PATCH', "$base/appointments/index.php", $cookieA, [
+    'id' => $pendingId,
+    'status' => 'Cancelled',
+]);
+assertTrue($repeatCancel['status'] === 422, 'Repeated cancellation is rejected', $results);
+$adminNotificationsAfterRepeat = request('GET', "$base/notifications/index.php", $cookieAdmin);
+$matchingAfterRepeat = array_values(array_filter(
+    $adminNotificationsAfterRepeat['body']['data']['notifications'] ?? [],
+    static fn(array $notification): bool =>
+        ($notification['type'] ?? '') === 'appointment_cancelled'
+        && (int) ($notification['reference_id'] ?? 0) === $pendingId
+));
+assertTrue(count($matchingAfterRepeat) === 1, 'Repeated cancellation creates no duplicate notification', $results);
+
 // Slot free again
 $afterPendingCancel = request('GET', "$base/appointments/availability.php?date={$slot1['date']}", $cookieA);
 $slotFree = in_array($slot1['time'], $afterPendingCancel['body']['data']['available'] ?? [], true);

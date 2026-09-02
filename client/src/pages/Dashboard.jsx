@@ -49,6 +49,9 @@ export default function Dashboard() {
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d7b57a]">Parish dashboard</p>
             <h1 className="font-display text-3xl text-white">Welcome, {user?.fullname}</h1>
           </div>
+          <Link to="/appointments?new=1" className="inline-flex items-center justify-center rounded-xl bg-[#d7b57a] px-4 py-2.5 text-sm font-semibold text-[#0f2337] transition hover:bg-[#e0c07d]">
+            Request Appointment
+          </Link>
         </div>
       </div>
 
@@ -113,7 +116,7 @@ export default function Dashboard() {
                         {a.appointment_date} {a.appointment_time?.slice(0, 5)}
                       </p>
                     </div>
-                    <StatusBadge status={a.status} />
+                    <StatusBadge status={a.status === 'Pending' ? 'Under Review' : a.status} />
                   </div>
                 ))}
               </div>

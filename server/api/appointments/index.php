@@ -157,6 +157,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
         errorResponse('Invalid update.', 422);
     }
 
+    if ($isAdmin && $status === 'Rejected' && trim((string) ($data['remarks'] ?? '')) === '') {
+        errorResponse('A rejection reason is required.', 422, ['remarks' => 'Please provide a reason for rejecting this appointment.']);
+    }
+
     $stmt = $db->prepare('SELECT id, user_id, status, remarks FROM appointments WHERE id = ?');
     $stmt->execute([$id]);
     $existing = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -209,17 +213,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
         $approvedBy = (int) $auth['user_id'];
     }
 
+    $cancelGuard = !$isAdmin && $status === 'Cancelled'
+        ? " AND status IN ('Pending', 'Approved')"
+        : '';
     $upd = $db->prepare(
-        'UPDATE appointments
+        "UPDATE appointments
          SET status = ?, remarks = ?, updated_at = NOW(),
              approved_by = COALESCE(?, approved_by),
-             cancelled_at = CASE WHEN ? = \'Cancelled\' THEN NOW() ELSE cancelled_at END
-         WHERE id = ?'
+             cancelled_at = CASE WHEN ? = 'Cancelled' THEN NOW() ELSE cancelled_at END
+         WHERE id = ?{$cancelGuard}"
     );
     $upd->execute([$status, $remarksValue, $approvedBy, $status, $id]);
 
+    if (!$isAdmin && $status === 'Cancelled' && $upd->rowCount() !== 1) {
+        errorResponse('This appointment cannot be cancelled.', 422);
+    }
+
     // Notify / SMS only when status actually changes (remarks-only saves must not spam).
     if ($statusChanged) {
+        if (!$isAdmin && $status === 'Cancelled') {
+            notifyAdminsOfAppointmentCancellation($db, $id);
+        }
+
         $appointmentUserId = (int) $existing['user_id'];
         $wantsUpdates = userWantsAppointmentUpdates($db, $appointmentUserId);
 

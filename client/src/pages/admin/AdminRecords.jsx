@@ -7,7 +7,7 @@ import { SERVICE_TYPES, STATUSES } from '../../utils/constants';
 import {
   fetchReservationDocument,
   getRecordArchive,
-  getRecordArchiveDetail,
+  getReservationRecordDetail,
   getUnlinkedRecordDetail,
 } from '../../services/api';
 
@@ -342,11 +342,12 @@ function RecordDetailsContent({ detail }) {
                   <DetailField label="Reservation Date" value={formatDate(reservation.reservation_date)} />
                   <DetailField label="Preferred Time" value={formatTime(reservation.reservation_time)} />
                   <DetailField label="Date Submitted" value={formatDate(reservation.created_at)} />
+                  <DetailField label="Reservation ID" value={`RES-${String(reservation.id).padStart(5, '0')}`} />
                   <DetailField label="Status" value={reservation.status} />
                   <DetailField
-                    label="Notes / Requirements"
+                    label="Personal Information &amp; Requirements"
                     value={reservation.requirements}
-                    className="sm:col-span-2"
+                    className="sm:col-span-2 whitespace-pre-wrap"
                   />
                   {reservation.remarks && (
                     <DetailField label="Remarks" value={reservation.remarks} className="sm:col-span-2" />
@@ -522,9 +523,9 @@ export default function AdminRecords() {
 
     try {
       const response =
-        record.is_unlinked || !record.user_id
+        record.is_unlinked
           ? await getUnlinkedRecordDetail(record.parish_record_id)
-          : await getRecordArchiveDetail(record.user_id);
+          : await getReservationRecordDetail(record.reservation_id);
       setDetail(response.data);
     } catch (err) {
       setDetailError(formatApiError(err, 'Failed to load record details.'));
@@ -539,6 +540,11 @@ export default function AdminRecords() {
     pending: records.filter((item) => item.status === 'Pending').length,
     manual: records.filter((item) => item.is_unlinked).length,
   };
+
+  const serviceFolders = SERVICE_TYPES.map((service) => ({
+    service,
+    records: records.filter((record) => record.service_type === service),
+  }));
 
   return (
     <DashboardLayout>
@@ -677,84 +683,71 @@ export default function AdminRecords() {
         </div>
       ) : error ? (
         <ErrorState message={error} onRetry={() => load()} />
-      ) : (
-        <div className="card overflow-hidden border border-slate-200 p-0">
-          <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Records</h2>
-          </div>
-
-          {records.length === 0 ? (
+        ) : (
+          records.length === 0 ? (
+          <div className="card border border-slate-200 p-0">
             <EmptyState hasFilters={hasActiveFilters} />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-sm">
-                <thead className="bg-slate-50">
-                  <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    <th className="px-6 py-3">Full Name</th>
-                    <th className="px-6 py-3">Service Type</th>
-                    <th className="px-6 py-3">Date</th>
-                    <th className="px-6 py-3">Status</th>
-                    <th className="px-6 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {records.map((record) => (
-                    <tr
-                      key={record.user_id ?? `unlinked-${record.parish_record_id}`}
-                      className="transition hover:bg-slate-50/80"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-[#0f2337]">{record.fullname}</div>
-                        {record.is_unlinked && (
-                          <span className="mt-1 inline-block rounded bg-orange-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-orange-600">
-                            Manual entry
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-slate-700">
-                        <div>{record.service_type || '—'}</div>
-                        {record.service_types?.length > 1 && (
-                          <div className="mt-0.5 text-xs text-slate-400">
-                            +{record.service_types.length - 1} more
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div>
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Record Management</p>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                {serviceFolders.map(({ service, records: folderRecords }) => (
+                  <div key={service} className="card border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#d7b57a] hover:shadow-lg">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-3xl" aria-hidden="true">📁</span>
+                      <span className="rounded-full bg-[#f5ead0] px-2.5 py-1 text-xs font-bold text-[#775b25]">{folderRecords.length}</span>
+                    </div>
+                    <h2 className="mt-4 font-display text-xl text-[#0f2337]">{service}</h2>
+                    <p className="mt-1 text-xs text-slate-500">Reservation folders</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {serviceFolders.map(({ service, records: folderRecords }) => (
+              <section key={service} className="card overflow-hidden border border-slate-200 p-0">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4">
+                  <div>
+                    <h2 className="font-display text-2xl text-[#0f2337]">📁 {service}</h2>
+                    <p className="mt-1 text-xs text-slate-500">{folderRecords.length} client folder{folderRecords.length === 1 ? '' : 's'}</p>
+                  </div>
+                </div>
+                {folderRecords.length === 0 ? (
+                  <p className="px-5 py-6 text-sm text-slate-500">No reservations in this service folder.</p>
+                ) : (
+                  <div className="grid gap-4 p-5 lg:grid-cols-2">
+                    {folderRecords.map((record) => (
+                      <article key={record.reservation_id ?? `unlinked-${record.parish_record_id}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-[#d7b57a] hover:shadow-md">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl" aria-hidden="true">📁</span>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="break-words font-semibold text-[#0f2337]">{record.fullname}</h3>
+                            <p className="mt-1 text-xs text-slate-500">Reservation #{record.reservation_id || 'manual'} · Submitted {formatDate(record.created_at || record.latest_activity_at)}</p>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              {record.status && record.status !== '—' && <StatusBadge status={record.status} />}
+                              <span className="text-xs text-slate-500">{formatDateTime(record.record_date, record.record_time)}</span>
+                            </div>
                           </div>
-                        )}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-slate-600">
-                        {formatDateTime(record.record_date, record.record_time)}
-                      </td>
-                      <td className="px-6 py-4">
-                        {record.status && record.status !== '—' ? (
-                          <StatusBadge status={record.status} />
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
+                        </div>
+                        <div className="mt-4 flex justify-end">
                           <button
                             type="button"
-                            className="inline-flex items-center rounded-lg border border-[#0f2337]/25 bg-white px-3 py-1.5 text-xs font-semibold text-[#0f2337] transition hover:bg-[#0f2337] hover:text-white"
+                            className="inline-flex items-center rounded-lg bg-[#0f2337] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#18324c]"
                             onClick={() => openView(record)}
                           >
-                            View
-                          </button>
-                          <button
-                            type="button"
-                            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled
-                            title="Edit record — coming soon"
-                          >
-                            Edit
+                            Open Folder
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ))}
+          </div>
+          )
       )}
 
       <Modal isOpen={!!viewRecord} onClose={closeView} title="Record Details" size="lg">

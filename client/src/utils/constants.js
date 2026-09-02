@@ -105,6 +105,7 @@ export const PARISH_LOCATION = {
 
 export const STATUS_BADGE = {
   Pending: 'badge-pending',
+  'Under Review': 'badge-pending',
   Approved: 'badge-approved',
   Rejected: 'badge-rejected',
   Completed: 'badge-completed',

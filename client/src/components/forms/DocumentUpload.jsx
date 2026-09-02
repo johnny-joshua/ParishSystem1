@@ -15,7 +15,7 @@ export default function DocumentUpload({
   const [uploading, setUploading] = useState({});
   const [errors, setErrors] = useState({});
   const [previews, setPreviews] = useState({});
-  const fileInputRef = useRef(null);
+  const fileInputRefs = useRef({});
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -44,13 +44,20 @@ export default function DocumentUpload({
     }
   };
 
-  const handleFiles = (fileList) => {
+  const handleFileChange = (docType, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    handleFiles([file], docType);
+    e.target.value = '';
+  };
+
+  const handleFiles = (fileList, selectedDocType = null) => {
     const newFiles = { ...files };
     const newErrors = { ...errors };
-    const newPreviews = { ...previews };
 
     Array.from(fileList).forEach((file) => {
-      let docType = findDocumentType(file.name);
+      let docType = selectedDocType || findDocumentType(file.name);
 
       if (!docType) {
         const unassigned = requirements.find(
@@ -88,12 +95,17 @@ export default function DocumentUpload({
           setPreviews((prev) => ({ ...prev, [docType]: e.target.result }));
         };
         reader.readAsDataURL(file);
+      } else {
+        setPreviews((prev) => {
+          const next = { ...prev };
+          delete next[docType];
+          return next;
+        });
       }
     });
 
     setFiles(newFiles);
     setErrors(newErrors);
-    setPreviews(newPreviews);
     onFilesChange?.(newFiles);
   };
 
@@ -118,8 +130,8 @@ export default function DocumentUpload({
     onFilesChange?.(newFiles);
   };
 
-  const onButtonClick = () => {
-    fileInputRef.current.click();
+  const onButtonClick = (docType) => {
+    fileInputRefs.current[docType]?.click();
   };
 
   const getFileIcon = (mimeType) => {
@@ -155,29 +167,14 @@ export default function DocumentUpload({
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleChange}
-              className="hidden"
-              accept=".jpg,.jpeg,.png,.pdf"
-            />
             <div className="space-y-2">
               <div className="text-4xl">📤</div>
               <p className="text-sm font-medium text-gray-700">
-                Drag and drop files here, or click to browse
+                Drag and drop files here
               </p>
               <p className="text-xs text-gray-500">
                 Accepted: JPG, PNG, PDF (max 5MB each)
               </p>
-              <button
-                type="button"
-                onClick={onButtonClick}
-                className="btn-secondary text-sm"
-              >
-                Select Files
-              </button>
             </div>
           </div>
 
@@ -209,8 +206,17 @@ export default function DocumentUpload({
                     'border-gray-200 bg-gray-50'
                   }`}
                 >
+                  <input
+                    ref={(element) => {
+                      fileInputRefs.current[req.type] = element;
+                    }}
+                    type="file"
+                    onChange={(e) => handleFileChange(req.type, e)}
+                    className="sr-only"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                  />
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <span className="text-2xl">
                         {file ? getFileIcon(file.type) : getFileIcon('application/pdf')}
                       </span>
@@ -229,11 +235,18 @@ export default function DocumentUpload({
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                       {isUploading ? (
                         <span className="text-xs text-blue-600">Uploading...</span>
                       ) : (
                         <>
+                            <button
+                              type="button"
+                              onClick={() => onButtonClick(req.type)}
+                              className="btn-primary min-h-10 px-3 py-2 text-xs"
+                            >
+                              {file ? 'Change File' : 'Select File'}
+                            </button>
                           <span className={`text-xs px-2 py-1 rounded border ${getStatusColor(status)}`}>
                             {status === 'missing' ? 'Not uploaded' : status}
                           </span>
@@ -272,6 +285,24 @@ export default function DocumentUpload({
                       )}
                     </div>
                   </div>
+                  {file && (
+                    <div className="mt-3 flex items-center gap-3 rounded-lg border border-blue-100 bg-white p-2">
+                      {previews[req.type] ? (
+                        <img
+                          src={previews[req.type]}
+                          alt={`Preview of ${file.name}`}
+                          className="h-14 w-14 rounded object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-14 w-14 items-center justify-center rounded bg-gray-100 text-2xl">
+                          {getFileIcon(file.type)}
+                        </span>
+                      )}
+                      <p className="min-w-0 flex-1 truncate text-xs text-gray-700" title={file.name}>
+                        ✓ {file.name}
+                      </p>
+                    </div>
+                  )}
                   {existing && existing.remarks && status === 'Rejected' && (
                     <p className="text-xs text-red-600 mt-2 italic">
                       Remarks: "{existing.remarks}"

@@ -2,10 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  background: #f6f8f7;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
 @layer base {
   body {
     @apply bg-parish-cream text-gray-800 font-sans antialiased;
+    margin: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    display: block;
+    max-width: 100%;
+  }
+
   .dark body {
     @apply bg-gray-900 text-gray-100;
   }
@@ -143,5 +178,25 @@
 
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  .mobile-scroll-snap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+  }
+}
+
+@media (max-width: 767px) {
+  .home-page .hero-shell {
+    padding-top: 4.5rem;
+    padding-bottom: 4.5rem;
+  }
+
+  .home-page .brand-heading {
+    letter-spacing: -0.03em;
   }
 }

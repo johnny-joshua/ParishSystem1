@@ -7,7 +7,7 @@ import {
   IconReservations,
 } from '../icons/ParishionerNavIcons';
 
-export default function Sidebar() {
+export default function Sidebar({ isMobileOpen = false, onClose = () => {} }) {
   const { isAdmin } = useAuth();
   const { t } = useSettings();
 
@@ -30,13 +30,18 @@ export default function Sidebar() {
 
   if (isAdmin) {
     return (
-      <aside className="w-64 shrink-0 hidden border-r border-slate-200 bg-gradient-to-b from-[#f8fafc] to-[#f3f5f8] shadow-[0_12px_28px_rgba(15,31,45,0.06)] dark:border-gray-700 dark:bg-gray-900 lg:fixed lg:left-0 lg:top-16 lg:z-40 lg:block lg:h-[calc(100vh-4rem)] lg:overflow-hidden">
+      <aside
+        className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-[82vw] max-w-[280px] border-r border-slate-200 bg-gradient-to-b from-[#f8fafc] to-[#f3f5f8] shadow-[0_12px_28px_rgba(15,31,45,0.06)] transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 lg:static lg:w-64 lg:translate-x-0 lg:shadow-[0_12px_28px_rgba(15,31,45,0.06)] ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
         <div className="flex h-full flex-col p-4">
           <nav className="mt-1 space-y-1.5" aria-label="Admin navigation">
             {adminLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
+                onClick={onClose}
                 className={({ isActive }) =>
                   `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                     isActive
@@ -67,13 +72,18 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200/80 dark:border-gray-700 shrink-0 hidden lg:fixed lg:top-16 lg:left-0 lg:z-40 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto lg:block shadow-sm">
+    <aside
+      className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-[82vw] max-w-[280px] overflow-y-auto border-r border-gray-200/80 bg-white shadow-sm transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 lg:static lg:w-64 lg:translate-x-0 lg:shadow-sm ${
+        isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}
+    >
       <div className="flex flex-col h-full px-3 py-5">
         <nav className="space-y-1.5 mt-1" aria-label="Parishioner navigation">
           {userPageLinks.map(({ to, label, Icon }) => (
             <NavLink
               key={to}
               to={to}
+              onClick={onClose}
               className={({ isActive }) =>
                 `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive

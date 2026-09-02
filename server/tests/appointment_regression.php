@@ -79,10 +79,17 @@ $login = request('POST', "$base/auth/login.php", [
 ]);
 assertTrue($login['status'] === 200, 'Login test user', $results);
 
-// Weekend blocked
-$weekend = request('GET', "$base/appointments/availability.php?date=2026-08-01");
-assertTrue($weekend['status'] === 200, 'Weekend availability request', $results);
-assertTrue(empty($weekend['body']['data']['available']), 'Saturday has no available slots', $results);
+// Official schedule: Tuesday and Sunday closed; Saturday open.
+$nextMonday = new DateTimeImmutable('next monday');
+$nextTuesday = $nextMonday->modify('+1 day')->format('Y-m-d');
+$nextSaturday = $nextMonday->modify('+5 days')->format('Y-m-d');
+$nextSunday = $nextMonday->modify('+6 days')->format('Y-m-d');
+$closedTuesday = request('GET', "$base/appointments/availability.php?date=$nextTuesday");
+$closedSunday = request('GET', "$base/appointments/availability.php?date=$nextSunday");
+$openSaturday = request('GET', "$base/appointments/availability.php?date=$nextSaturday");
+assertTrue($closedTuesday['status'] === 200 && empty($closedTuesday['body']['data']['available']), 'Tuesday is closed', $results);
+assertTrue($closedSunday['status'] === 200 && empty($closedSunday['body']['data']['available']), 'Sunday is closed', $results);
+assertTrue($openSaturday['status'] === 200 && !empty($openSaturday['body']['data']['available']), 'Saturday is open', $results);
 
 // Past date blocked
 $past = request('GET', "$base/appointments/availability.php?date=2020-01-06");
@@ -145,6 +152,16 @@ if ($pickDate) {
             'purpose' => 'Second appointment same day',
         ]);
         assertTrue($second['status'] === 201, 'Same user multiple appointments allowed', $results);
+    }
+
+    // Lunch, before-hours, and after-hours times rejected
+    foreach (['11:30:00', '07:30:00', '17:00:00'] as $invalidTime) {
+        $invalidWindow = request('POST', "$base/appointments/index.php", [
+            'appointment_date' => $pickDate,
+            'appointment_time' => $invalidTime,
+            'purpose' => 'Invalid schedule window',
+        ]);
+        assertTrue($invalidWindow['status'] === 422, "Invalid schedule time {$invalidTime} rejected", $results);
     }
 
     // Invalid time rejected

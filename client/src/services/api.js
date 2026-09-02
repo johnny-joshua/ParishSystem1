@@ -79,6 +79,8 @@ export const deleteRecord = (id) => api.delete(`/records/index.php?id=${id}`);
 export const getRecordArchive = (params) => api.get('/records/archive.php', { params });
 export const getRecordArchiveDetail = (userId) =>
   api.get('/records/archive.php', { params: { user_id: userId } });
+export const getReservationRecordDetail = (reservationId) =>
+  api.get('/records/archive.php', { params: { reservation_id: reservationId } });
 export const getUnlinkedRecordDetail = (parishRecordId) =>
   api.get('/records/archive.php', { params: { parish_record_id: parishRecordId } });
 export const downloadParishionerFiles = (userId) =>

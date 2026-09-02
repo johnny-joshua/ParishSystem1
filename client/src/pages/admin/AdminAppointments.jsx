@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import StatusBadge from '../../components/cards/StatusBadge';
+import Modal from '../../components/forms/Modal';
 import { STATUSES } from '../../utils/constants';
 import { getAppointments, updateAppointment } from '../../services/api';
 
@@ -12,6 +13,7 @@ export default function AdminAppointments() {
   const [showRemarks, setShowRemarks] = useState({});
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -50,6 +52,11 @@ export default function AdminAppointments() {
   };
 
   const setStatus = async (id, status) => {
+    if (status === 'Rejected' && !resolveRemarks(id).trim()) {
+      setShowRemarks((prev) => ({ ...prev, [id]: true }));
+      alert('Please provide a reason before rejecting this appointment.');
+      return;
+    }
     setActionLoading(id);
     try {
       await updateAppointment({ id, status, remarks: resolveRemarks(id) });
@@ -152,7 +159,7 @@ export default function AdminAppointments() {
               <option value="All">All Status</option>
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {s === 'Pending' ? 'Under Review' : s}
                 </option>
               ))}
             </select>
@@ -200,10 +207,17 @@ export default function AdminAppointments() {
                       <span className="block truncate">{a.purpose}</span>
                     </td>
                     <td className="px-5 py-4">
-                      <StatusBadge status={a.status} />
+                      <StatusBadge status={a.status === 'Pending' ? 'Under Review' : a.status} />
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap justify-end gap-x-3 gap-y-2">
+                        <button
+                          type="button"
+                          className="text-sm font-semibold text-[#0f2337]"
+                          onClick={() => setSelectedAppointment(a)}
+                        >
+                          View Details
+                        </button>
                         {canActPending(a.status) && (
                           <>
                             <button
@@ -300,6 +314,31 @@ export default function AdminAppointments() {
           <p className="px-5 py-6 text-sm text-gray-500">No appointments found.</p>
         )}
       </div>
+
+      <Modal isOpen={!!selectedAppointment} onClose={() => setSelectedAppointment(null)} title="Appointment Details" size="lg">
+        {selectedAppointment && (
+          <div className="space-y-5 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Appointment ID</p>
+                <p className="font-semibold text-parish-blue">APT-{String(selectedAppointment.id).padStart(5, '0')}</p>
+              </div>
+              <StatusBadge status={selectedAppointment.status === 'Pending' ? 'Under Review' : selectedAppointment.status} />
+            </div>
+            <dl className="grid gap-4 rounded-xl bg-gray-50 p-4 sm:grid-cols-2">
+              <div><dt className="text-xs text-gray-500">Parishioner</dt><dd className="font-medium">{selectedAppointment.fullname}</dd></div>
+              <div><dt className="text-xs text-gray-500">Email</dt><dd className="break-words font-medium">{selectedAppointment.email}</dd></div>
+              <div><dt className="text-xs text-gray-500">Contact Number</dt><dd className="font-medium">{selectedAppointment.phone || '—'}</dd></div>
+              <div><dt className="text-xs text-gray-500">Address</dt><dd className="font-medium">{selectedAppointment.address || '—'}</dd></div>
+              <div><dt className="text-xs text-gray-500">Purpose</dt><dd className="font-medium">{selectedAppointment.purpose}</dd></div>
+              <div><dt className="text-xs text-gray-500">Submitted</dt><dd className="font-medium">{selectedAppointment.created_at}</dd></div>
+              <div><dt className="text-xs text-gray-500">Requested Date</dt><dd className="font-medium">{selectedAppointment.appointment_date}</dd></div>
+              <div><dt className="text-xs text-gray-500">Requested Time</dt><dd className="font-medium">{selectedAppointment.appointment_time?.slice(0, 5)}</dd></div>
+            </dl>
+            {selectedAppointment.remarks && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3"><span className="font-semibold">Remarks:</span> {selectedAppointment.remarks}</div>}
+          </div>
+        )}
+      </Modal>
     </DashboardLayout>
   );
 }

@@ -167,7 +167,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
     $upd = $db->prepare('UPDATE reservations SET status = ?, remarks = ? WHERE id = ?');
     $upd->execute([$status, $remarks ?: null, $id]);
 
-    notifyReservationStatusChange($db, $id, $status);
+    // A decision notification is created only after a real status transition.
+    if ($statusChanged) {
+        notifyReservationStatusChange($db, $id, $status);
+    }
 
     // Send SMS only when status actually changes
     if ($statusChanged) {

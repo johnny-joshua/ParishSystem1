@@ -23,13 +23,21 @@ import {
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const SERVICE_STEPS = [
+  { id: 'service', label: 'Service' },
+  { id: 'details', label: 'Personal Info' },
+  { id: 'schedule', label: 'Date & Time' },
+  { id: 'documents', label: 'Requirements' },
+  { id: 'review', label: 'Review' },
+];
+
 const SERVICE_DETAIL_FIELDS = {
   Marriage: [
     { key: 'bride_name', label: 'Bride Name' },
     { key: 'groom_name', label: 'Groom Name' },
-    { key: 'wedding_date', label: 'Proposed Wedding Date' },
+    { key: 'address', label: 'Address' },
     { key: 'contact_person', label: 'Contact Person' },
-    { key: 'wedding_venue', label: 'Preferred Venue / Ceremony Note' },
+    { key: 'email_address', label: 'Email Address' },
   ],
   Funeral: [
     { key: 'deceased_name', label: 'Deceased Name' },
@@ -111,6 +119,7 @@ export default function Reservation() {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const [form, setForm] = useState({
     service_type: 'Marriage',
     reservation_date: '',
@@ -256,13 +265,15 @@ export default function Reservation() {
   });
 
   const handleServiceChange = (serviceType) => {
+    const nextDetails = getDefaultServiceDetails(serviceType);
     setForm({
       ...form,
       service_type: serviceType,
       reservation_date: '',
       reservation_time: '',
-      serviceDetails: getDefaultServiceDetails(serviceType),
+      serviceDetails: nextDetails,
     });
+    setCurrentStep(0);
     setCalendarMonth(toIsoMonth(new Date()));
   };
 
@@ -271,6 +282,51 @@ export default function Reservation() {
     if (iso.slice(0, 7) !== calendarMonth) {
       setCalendarMonth(iso.slice(0, 7));
     }
+  };
+
+  const goToStep = (stepIndex) => {
+    if (stepIndex < 0 || stepIndex > SERVICE_STEPS.length - 1) return;
+    setCurrentStep(stepIndex);
+  };
+
+  const getRequiredServiceDetails = () => SERVICE_DETAIL_FIELDS[form.service_type] || [];
+
+  const canAdvanceFromService = () => Boolean(form.service_type);
+  const canAdvanceFromDetails = () => {
+    const fields = getRequiredServiceDetails();
+    return fields.length === 0 || fields.every((field) => String(form.serviceDetails[field.key] || '').trim());
+  };
+  const canAdvanceFromSchedule = () => Boolean(form.reservation_date && form.reservation_time);
+
+  const handleNextStep = () => {
+    setError('');
+    if (currentStep === 0 && !canAdvanceFromService()) {
+      setError('Please choose a service type to continue.');
+      return;
+    }
+    if (currentStep === 1 && !canAdvanceFromDetails()) {
+      setError('Please complete all personal information fields before continuing.');
+      return;
+    }
+    if (currentStep === 2 && !canAdvanceFromSchedule()) {
+      setError('Please choose an available date and time slot.');
+      return;
+    }
+    if (currentStep === 3) {
+      const requiredDocs = docRequirements.filter((d) => d.required);
+      const missingRequired = requiredDocs.filter((d) => !uploadedFiles[d.type]);
+      if (missingRequired.length > 0) {
+        setError(`Please upload all required documents: ${missingRequired.map((d) => d.name).join(', ')}`);
+        return;
+      }
+    }
+
+    setCurrentStep((prev) => Math.min(prev + 1, SERVICE_STEPS.length - 1));
+  };
+
+  const handleBackStep = () => {
+    setError('');
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
   const handleSubmit = async (e) => {
@@ -457,207 +513,339 @@ export default function Reservation() {
             </div>
           </div>
 
+          <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {SERVICE_STEPS.map((step, index) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => goToStep(index)}
+                  className={`min-w-[120px] rounded-xl border px-3 py-2 text-left transition ${
+                    index === currentStep
+                      ? 'border-[#0f2337] bg-[#0f2337] text-white shadow-sm'
+                      : index < currentStep
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-200 bg-slate-50 text-slate-600'
+                  }`}
+                >
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">Step {index + 1}</div>
+                  <div className="mt-1 text-sm font-semibold">{step.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-5">
               {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
-              <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Service Type</label>
-                <select
-                  className="input-field"
-                  value={form.service_type}
-                  onChange={(e) => handleServiceChange(e.target.value)}
-                >
-                  {SERVICE_TYPES.map((s) => (
-                    <option key={s} value={s}>
-                      {SERVICE_LABELS[s] || s}
-                    </option>
-                  ))}
-                </select>
+              {currentStep === 0 && (
+                <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
+                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Service Type</label>
+                  <select
+                    className="input-field"
+                    value={form.service_type}
+                    onChange={(e) => handleServiceChange(e.target.value)}
+                  >
+                    {SERVICE_TYPES.map((s) => (
+                      <option key={s} value={s}>
+                        {SERVICE_LABELS[s] || s}
+                      </option>
+                    ))}
+                  </select>
 
-                <div className="mt-4 rounded-2xl border border-[#f2e4bb] bg-[#fffaf0] p-3 text-sm text-slate-700">
-                  <div className="mb-1.5"><span className="font-semibold text-[#0f2337]">Parish schedule:</span> {SERVICE_SCHEDULE[form.service_type]}</div>
-                  <div><span className="font-semibold text-[#0f2337]">Requirements:</span> {SERVICE_REQUIREMENTS[form.service_type]}</div>
-                </div>
-              </div>
-
-              <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Select Date</label>
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">Calendar</span>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <button
-                      type="button"
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                      onClick={() => {
-                        const d = new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1);
-                        setCalendarMonth(toIsoMonth(d));
-                      }}
-                    >
-                      ← Prev
-                    </button>
-                    <div className="text-sm font-semibold text-[#0f2337]">{formatMonthLabel(calendarMonth)}</div>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                      onClick={() => {
-                        const d = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
-                        setCalendarMonth(toIsoMonth(d));
-                      }}
-                    >
-                      Next →
-                    </button>
+                  <div className="mt-4 rounded-2xl border border-[#f2e4bb] bg-[#fffaf0] p-3 text-sm text-slate-700">
+                    <div className="mb-1.5"><span className="font-semibold text-[#0f2337]">Parish schedule:</span> {SERVICE_SCHEDULE[form.service_type]}</div>
+                    <div><span className="font-semibold text-[#0f2337]">Requirements:</span> {SERVICE_REQUIREMENTS[form.service_type]}</div>
                   </div>
+                </div>
+              )}
 
-                  <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    {WEEKDAY_LABELS.map((day) => (
-                      <div key={day} className="py-2">
-                        {day}
-                      </div>
+              {currentStep === 1 && (
+                <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
+                  <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Personal Information</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {getRequiredServiceDetails().map((field) => (
+                      <label key={field.key} className="block text-sm text-slate-700 sm:col-span-2">
+                        <span className="mb-2 block font-medium text-slate-700">{field.label}</span>
+                        <input
+                          type="text"
+                          className="input-field"
+                          value={form.serviceDetails[field.key] || ''}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              serviceDetails: {
+                                ...form.serviceDetails,
+                                [field.key]: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder={field.label}
+                        />
+                      </label>
                     ))}
                   </div>
-
-                  <div className="grid grid-cols-7 gap-1">
-                    {dateCells.map((iso, idx) => {
-                      if (!iso) {
-                        return <div key={`empty-${idx}`} className="h-11" />;
-                      }
-                      const status = dateStatuses[iso]?.status || 'unavailable';
-                      const isSelected = form.reservation_date === iso;
-                      const isPastOrTooSoon = iso < minDate;
-                      const isAvailable = status === 'available' && !isPastOrTooSoon;
-                      const isFull = status === 'full' && !isPastOrTooSoon;
-
-                      let bgCls = 'border border-slate-200 bg-slate-100 text-slate-400';
-                      if (isAvailable) bgCls = 'border border-emerald-300 bg-emerald-100 text-emerald-800';
-                      if (isFull) bgCls = 'border border-red-300 bg-red-100 text-red-800';
-                      if (isSelected) bgCls += ' ring-2 ring-[#0f2337] ring-offset-1';
-
-                      return (
-                        <button
-                          key={iso}
-                          type="button"
-                          disabled={!isAvailable}
-                          title={
-                            isFull
-                              ? 'Fully booked'
-                              : isPastOrTooSoon
-                                ? 'Not available'
-                                : isAvailable
-                                  ? 'Available — click to select'
-                                  : 'Not available for this service'
-                          }
-                          className={`h-11 rounded-xl text-xs font-semibold transition ${bgCls} ${
-                            isAvailable ? 'cursor-pointer hover:brightness-95' : 'cursor-not-allowed'
-                          }`}
-                          onClick={() => handleDateSelect(iso)}
-                        >
-                          {Number(iso.slice(8, 10))}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-600">
-                    <div className="flex items-center gap-1.5"><span className="inline-block h-3.5 w-3.5 rounded bg-emerald-100 ring-1 ring-emerald-300" /> Available</div>
-                    <div className="flex items-center gap-1.5"><span className="inline-block h-3.5 w-3.5 rounded bg-red-100 ring-1 ring-red-300" /> Fully booked</div>
-                    <div className="flex items-center gap-1.5"><span className="inline-block h-3.5 w-3.5 rounded bg-slate-100 ring-1 ring-slate-300" /> Not available</div>
-                  </div>
-
-                  {form.reservation_date && (
-                    <p className="mt-3 text-sm font-medium text-[#0f2337]">
-                      Selected: {new Date(form.reservation_date + 'T12:00:00').toLocaleDateString(undefined, {
-                        weekday: 'long',
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </p>
-                  )}
                 </div>
-              </div>
+              )}
 
-              <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
-                <label className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Select Time Slot</label>
-                {form.reservation_date ? (
-                  slotItems.length > 0 ? (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {slotItems.map((slot) => {
-                        const isAvailable = slot.status === 'available';
-                        const isSelected = form.reservation_time === slot.time;
-                        const base = 'w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition';
-                        const cls = isAvailable
-                          ? `bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 ${isSelected ? 'ring-2 ring-emerald-500' : ''}`
-                          : 'border-red-300 bg-red-50 text-red-800 cursor-not-allowed';
-                        return (
-                          <button
-                            key={slot.time}
-                            type="button"
-                            disabled={!isAvailable}
-                            className={`${base} ${cls}`}
-                            onClick={() => setForm({ ...form, reservation_time: slot.time })}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-base">{formatSlotTime(slot.time)}</span>
-                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${isAvailable ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'}`}>
-                                {isAvailable ? 'Available' : 'Full'}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
+              {currentStep === 2 && (
+                <>
+                  <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Select Date</label>
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">Calendar</span>
                     </div>
-                  ) : (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                      No time slots are available for this service on the selected date. Choose a green date on the calendar or another service day per the parish schedule.
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <button
+                          type="button"
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                          onClick={() => {
+                            const d = new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1);
+                            setCalendarMonth(toIsoMonth(d));
+                          }}
+                        >
+                          ← Prev
+                        </button>
+                        <div className="text-sm font-semibold text-[#0f2337]">{formatMonthLabel(calendarMonth)}</div>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                          onClick={() => {
+                            const d = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
+                            setCalendarMonth(toIsoMonth(d));
+                          }}
+                        >
+                          Next →
+                        </button>
+                      </div>
+
+                      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        {WEEKDAY_LABELS.map((day) => (
+                          <div key={day} className="py-2">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1">
+                        {dateCells.map((iso, idx) => {
+                          if (!iso) {
+                            return <div key={`empty-${idx}`} className="h-11" />;
+                          }
+                          const status = dateStatuses[iso]?.status || 'unavailable';
+                          const isSelected = form.reservation_date === iso;
+                          const isPastOrTooSoon = iso < minDate;
+                          const isAvailable = status === 'available' && !isPastOrTooSoon;
+                          const isFull = status === 'full' && !isPastOrTooSoon;
+
+                          let bgCls = 'border border-slate-200 bg-slate-100 text-slate-400';
+                          if (isAvailable) bgCls = 'border border-emerald-300 bg-emerald-100 text-emerald-800';
+                          if (isFull) bgCls = 'border border-red-300 bg-red-100 text-red-800';
+                          if (isSelected) bgCls += ' ring-2 ring-[#0f2337] ring-offset-1';
+
+                          return (
+                            <button
+                              key={iso}
+                              type="button"
+                              disabled={!isAvailable}
+                              title={
+                                isFull
+                                  ? 'Fully booked'
+                                  : isPastOrTooSoon
+                                    ? 'Not available'
+                                    : isAvailable
+                                      ? 'Available — click to select'
+                                      : 'Not available for this service'
+                              }
+                              className={`h-11 rounded-xl text-xs font-semibold transition ${bgCls} ${
+                                isAvailable ? 'cursor-pointer hover:brightness-95' : 'cursor-not-allowed'
+                              }`}
+                              onClick={() => handleDateSelect(iso)}
+                            >
+                              {Number(iso.slice(8, 10))}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-600">
+                        <div className="flex items-center gap-1.5"><span className="inline-block h-3.5 w-3.5 rounded bg-emerald-100 ring-1 ring-emerald-300" /> Available</div>
+                        <div className="flex items-center gap-1.5"><span className="inline-block h-3.5 w-3.5 rounded bg-red-100 ring-1 ring-red-300" /> Fully booked</div>
+                        <div className="flex items-center gap-1.5"><span className="inline-block h-3.5 w-3.5 rounded bg-slate-100 ring-1 ring-slate-300" /> Not available</div>
+                      </div>
+
+                      {form.reservation_date && (
+                        <p className="mt-3 text-sm font-medium text-[#0f2337]">
+                          Selected: {new Date(form.reservation_date + 'T12:00:00').toLocaleDateString(undefined, {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      )}
                     </div>
-                  )
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-                    Pick a green date on the calendar to see available time slots.
                   </div>
-                )}
-              </div>
 
-              <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Notes</label>
-                <textarea
-                  className="input-field"
-                  rows={3}
-                  value={form.requirements}
-                  onChange={(e) => setForm({ ...form, requirements: e.target.value })}
-                />
-              </div>
+                  <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
+                    <label className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Select Time Slot</label>
+                    {form.reservation_date ? (
+                      slotItems.length > 0 ? (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {slotItems.map((slot) => {
+                            const isAvailable = slot.status === 'available';
+                            const isSelected = form.reservation_time === slot.time;
+                            const base = 'w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition';
+                            const cls = isAvailable
+                              ? `bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 ${isSelected ? 'ring-2 ring-emerald-500' : ''}`
+                              : 'border-red-300 bg-red-50 text-red-800 cursor-not-allowed';
+                            return (
+                              <button
+                                key={slot.time}
+                                type="button"
+                                disabled={!isAvailable}
+                                className={`${base} ${cls}`}
+                                onClick={() => setForm({ ...form, reservation_time: slot.time })}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-base">{formatSlotTime(slot.time)}</span>
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${isAvailable ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'}`}>
+                                    {isAvailable ? 'Available' : 'Full'}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                          No time slots are available for this service on the selected date. Choose a green date on the calendar or another service day per the parish schedule.
+                        </div>
+                      )
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                        Pick a green date on the calendar to see available time slots.
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {currentStep === 3 && (
+                <div className="space-y-5">
+                  <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Documents</h3>
+                      <span className="rounded-full bg-[#f5ead0] px-2 py-1 text-[10px] font-medium text-[#775b25]">Required</span>
+                    </div>
+                    <DocumentUpload requirements={docRequirements} onFilesChange={setUploadedFiles} />
+                  </div>
+
+                  <div className="rounded-[24px] border border-[#d7b57a] bg-[#fffaf0] p-4 sm:p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#775b25]">Before you continue</p>
+                    <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                      <li>• Confirm your selected date and time.</li>
+                      <li>• Upload all required documents before submitting.</li>
+                      <li>• Your request will be reviewed by the parish office.</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 4 && (
+                <div className="space-y-5">
+                  <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
+                    <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Review Reservation</h3>
+                    <div className="space-y-3 text-sm text-slate-700">
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Service</div>
+                        <div className="mt-1 font-semibold text-[#0f2337]">{SERVICE_LABELS[form.service_type] || form.service_type}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Date & Time</div>
+                        <div className="mt-1 font-semibold text-[#0f2337]">
+                          {form.reservation_date ? new Date(form.reservation_date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Not selected'}
+                          {' · '}
+                          {form.reservation_time ? formatSlotTime(form.reservation_time) : 'Not selected'}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Details</div>
+                        <ul className="mt-2 space-y-1">
+                          {Object.entries(form.serviceDetails || {}).map(([key, value]) => {
+                            if (!String(value || '').trim()) return null;
+                            const label = (SERVICE_DETAIL_FIELDS[form.service_type] || []).find((item) => item.key === key)?.label || key;
+                            return (
+                              <li key={key} className="flex gap-2"><span className="font-medium text-slate-600">{label}:</span><span>{value}</span></li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Uploaded Requirements</div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {Object.keys(uploadedFiles).length > 0 ? (
+                            Object.keys(uploadedFiles).map((docType) => (
+                              <span key={docType} className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">
+                                {docType.replace(/_/g, ' ')}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-slate-500">No documents uploaded yet.</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Notes</label>
+                        <textarea
+                          className="input-field min-h-[80px]"
+                          value={form.requirements}
+                          onChange={(e) => setForm({ ...form, requirements: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-5">
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Documents</h3>
-                  <span className="rounded-full bg-[#f5ead0] px-2 py-1 text-[10px] font-medium text-[#775b25]">Required</span>
+              {currentStep !== 4 && (
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Progress</h3>
+                    <span className="rounded-full bg-[#f5ead0] px-2 py-1 text-[10px] font-medium text-[#775b25]">
+                      {currentStep + 1}/{SERVICE_STEPS.length}
+                    </span>
+                  </div>
+                  <ul className="space-y-2 text-sm text-slate-700">
+                    <li>• Confirm your service and personal details.</li>
+                    <li>• Choose an available date and time.</li>
+                    <li>• Upload all required documents.</li>
+                    <li>• Review and submit for parish review.</li>
+                  </ul>
                 </div>
-                <DocumentUpload requirements={docRequirements} onFilesChange={setUploadedFiles} />
-              </div>
+              )}
 
-              <div className="rounded-[24px] border border-[#d7b57a] bg-[#fffaf0] p-4 sm:p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#775b25]">Before you continue</p>
-                <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                  <li>• Confirm your selected date and time.</li>
-                  <li>• Upload all required documents before submitting.</li>
-                  <li>• Your request will be reviewed by the parish office.</li>
-                </ul>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {currentStep > 0 && (
+                  <button type="button" className="btn-outline flex-1" onClick={handleBackStep}>
+                    Back
+                  </button>
+                )}
+                {currentStep < SERVICE_STEPS.length - 1 ? (
+                  <button type="button" className="btn-primary flex-1" onClick={handleNextStep}>
+                    Next
+                  </button>
+                ) : (
+                  <button type="submit" className="btn-primary flex-1" disabled={uploadingDocs}>
+                    {uploadingDocs ? 'Submitting...' : 'Submit Reservation'}
+                  </button>
+                )}
               </div>
-
-              <button
-                type="submit"
-                className="btn-primary w-full"
-                disabled={!form.reservation_date || !form.reservation_time || uploadingDocs}
-              >
-                {uploadingDocs ? 'Submitting...' : 'Submit Reservation'}
-              </button>
             </div>
           </div>
         </form>
@@ -724,10 +912,10 @@ export default function Reservation() {
                                   </span>
                                   <button
                                     type="button"
-                                    className="font-medium text-[#0f2337] underline underline-offset-2"
+                                    className="rounded-lg bg-[#0f2337] px-3 py-2 font-medium text-white underline-offset-2 transition hover:bg-[#18324c]"
                                     onClick={() => handleDocumentReplace(r.id, d.document_type)}
                                   >
-                                    Replace
+                                    Select File
                                   </button>
                                 </div>
                               ))}

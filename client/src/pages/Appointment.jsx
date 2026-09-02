@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusBadge from '../components/cards/StatusBadge';
 import LoadingSpinner from '../components/forms/LoadingSpinner';
@@ -12,6 +13,16 @@ import {
 } from '../services/api';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const PURPOSE_OPTIONS = [
+  'Getting a Certificate',
+  'Requesting a Church Record',
+  'Record Inquiry',
+  'Sacramental Inquiry',
+  'Document Request',
+  'Parish Office Inquiry',
+  'Other',
+];
+const APPOINTMENT_STEPS = ['Personal Information', 'Purpose', 'Date & Time', 'Review & Submit'];
 
 /** Current calendar date in Asia/Manila (YYYY-MM-DD), matching backend parishToday(). */
 function manilaTodayIso() {
@@ -44,11 +55,6 @@ function formatSlotTime(time) {
   return `${h12}:${String(minutes).padStart(2, '0')} ${period}`;
 }
 
-function isWeekendDate(iso) {
-  const dayOfWeek = new Date(`${iso}T12:00:00`).getDay();
-  return dayOfWeek === 0 || dayOfWeek === 6;
-}
-
 function getCalendarDateTitle(iso, status, todayIso) {
   const isPast = iso < todayIso || status === 'past';
 
@@ -61,8 +67,9 @@ function getCalendarDateTitle(iso, status, todayIso) {
   if (status === 'full') {
     return 'Fully Booked';
   }
-  if (isWeekendDate(iso)) {
-    return 'Weekend (Office Closed)';
+  const dayOfWeek = new Date(`${iso}T12:00:00`).getDay();
+  if (dayOfWeek === 0 || dayOfWeek === 2) {
+    return 'Closed';
   }
   if (iso === todayIso && status === 'unavailable') {
     return 'No Remaining Slots Today';
@@ -71,10 +78,21 @@ function getCalendarDateTitle(iso, status, todayIso) {
 }
 
 export default function Appointment() {
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ appointment_date: '', appointment_time: '', purpose: '' });
+  const [currentStep, setCurrentStep] = useState(0);
+  const [form, setForm] = useState({
+    appointment_date: '',
+    appointment_time: '',
+    purpose: '',
+    custom_purpose: '',
+    fullname: '',
+    email: '',
+    phone: '',
+    address: '',
+  });
   const [slotItems, setSlotItems] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => manilaTodayIso().slice(0, 7));
@@ -101,8 +119,21 @@ export default function Appointment() {
       });
 
   useEffect(() => {
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        fullname: prev.fullname || user.fullname || '',
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.phone || '',
+        address: prev.address || user.address || '',
+      }));
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (searchParams.get('new') === '1') {
       setShowForm(true);
+      setCurrentStep(0);
       setError('');
       setMsg('');
       requestAnimationFrame(() => {
@@ -221,6 +252,31 @@ export default function Appointment() {
     }
   };
 
+  const updateField = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
+
+  const purposeValue = form.purpose === 'Other' ? form.custom_purpose.trim() : form.purpose;
+
+  const canContinue = () => {
+    if (currentStep === 0) return form.fullname.trim() && form.email.trim() && form.phone.trim() && form.address.trim();
+    if (currentStep === 1) return form.purpose && (form.purpose !== 'Other' || form.custom_purpose.trim());
+    if (currentStep === 2) return form.appointment_date && form.appointment_time;
+    return true;
+  };
+
+  const nextStep = () => {
+    setError('');
+    if (!canContinue()) {
+      setError(currentStep === 0 ? 'Please complete all personal information fields.' : currentStep === 1 ? 'Please choose or specify the appointment purpose.' : 'Please select an available date and time.');
+      return;
+    }
+    setCurrentStep((prev) => Math.min(prev + 1, APPOINTMENT_STEPS.length - 1));
+  };
+
+  const backStep = () => {
+    setError('');
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+  };
+
   const refreshDaySlots = (selectedDate) => {
     if (!selectedDate) {
       setSlotItems([]);
@@ -274,11 +330,16 @@ export default function Appointment() {
     submitInProgress.current = true;
     setSubmitting(true);
     try {
-      await createAppointment(form);
+      await createAppointment({
+        appointment_date: form.appointment_date,
+        appointment_time: form.appointment_time,
+        purpose: purposeValue,
+      });
       setMsg('Appointment request submitted successfully!');
       await refreshMonthlyStatuses(calendarMonth);
       setShowForm(false);
-      setForm({ appointment_date: '', appointment_time: '', purpose: '' });
+      setCurrentStep(0);
+      setForm({ appointment_date: '', appointment_time: '', purpose: '', custom_purpose: '', fullname: user?.fullname || '', email: user?.email || '', phone: user?.phone || '', address: user?.address || '' });
       load();
     } catch (err) {
       setError(err.message);
@@ -380,16 +441,59 @@ export default function Appointment() {
 
       {showForm && (
         <form ref={formRef} onSubmit={handleSubmit} className="card mb-6 space-y-4">
-          <h2 className="font-semibold text-lg">New Appointment</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-parish-gold">Request Appointment</p>
+              <h2 className="mt-1 font-display text-2xl text-parish-blue">{APPOINTMENT_STEPS[currentStep]}</h2>
+            </div>
+            <span className="rounded-full bg-parish-gold-light px-3 py-1 text-xs font-semibold text-parish-blue">Step {currentStep + 1} of {APPOINTMENT_STEPS.length}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {APPOINTMENT_STEPS.map((step, index) => (
+              <button key={step} type="button" onClick={() => index <= currentStep && setCurrentStep(index)} className={`rounded-lg px-2 py-2 text-left text-xs font-semibold ${index === currentStep ? 'bg-parish-blue text-white' : index < currentStep ? 'bg-parish-gold-light text-parish-blue' : 'bg-gray-100 text-gray-400'}`}>
+                {index + 1}. {step}
+              </button>
+            ))}
+          </div>
           <p className="text-sm text-gray-600">
-            <strong>Office hours:</strong> Monday–Friday
+            <strong>Office hours:</strong> Monday and Wednesday–Saturday
             <br />
-            Available appointment slots: 8:00 AM – 4:30 PM (30-minute intervals)
+            Available appointment slots: 8:00–11:00 AM and 1:00–5:00 PM (30-minute intervals)
             <br />
-            Closed on weekends. Green dates have open slots; red dates are fully booked.
+            Tuesday and Sunday are closed. Green dates have open slots; red dates are fully booked.
           </p>
           {error && <div className="bg-red-50 text-red-700 p-3 rounded text-sm">{error}</div>}
-          <div className="grid lg:grid-cols-2 gap-6">
+          {currentStep === 0 && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                ['fullname', 'Full Name'],
+                ['email', 'Email Address'],
+                ['phone', 'Contact Number'],
+                ['address', 'Address'],
+              ].map(([field, label]) => (
+                <label key={field} className="text-sm font-medium text-gray-700 sm:last:col-span-2">
+                  {label}
+                  <input className="input-field mt-2" type={field === 'email' ? 'email' : 'text'} value={form[field]} onChange={(e) => updateField(field, e.target.value)} required />
+                </label>
+              ))}
+            </div>
+          )}
+          {currentStep === 1 && (
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700">What is the purpose of your appointment?
+                <select className="input-field mt-2" value={form.purpose} onChange={(e) => updateField('purpose', e.target.value)} required>
+                  <option value="">Choose a purpose</option>
+                  {PURPOSE_OPTIONS.map((purpose) => <option key={purpose} value={purpose}>{purpose}</option>)}
+                </select>
+              </label>
+              {form.purpose === 'Other' && (
+                <label className="block text-sm font-medium text-gray-700">Please specify your purpose
+                  <textarea className="input-field mt-2" rows={3} value={form.custom_purpose} onChange={(e) => updateField('custom_purpose', e.target.value)} required />
+                </label>
+              )}
+            </div>
+          )}
+          {currentStep === 2 && <div className="grid gap-6 lg:grid-cols-2">
             <div>
               <label className="block text-sm font-medium mb-2">Select Date</label>
               <div className="border rounded-lg p-4 bg-gray-50">
@@ -493,8 +597,15 @@ export default function Appointment() {
                     Loading available time slots...
                   </div>
                 ) : slotItems.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {slotItems.map((slot) => {
+                  <div className="space-y-4">
+                    {[
+                      ['Morning', slotItems.filter((slot) => slot.time < '11:00:00')],
+                      ['Afternoon', slotItems.filter((slot) => slot.time >= '13:00:00')],
+                    ].map(([period, periodSlots]) => periodSlots.length > 0 && (
+                      <div key={period}>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{period}</p>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {periodSlots.map((slot) => {
                       const isSelected = form.appointment_time === slot.time;
                       return (
                         <button
@@ -513,7 +624,10 @@ export default function Appointment() {
                           </div>
                         </button>
                       );
-                    })}
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm border border-red-200">
@@ -526,24 +640,31 @@ export default function Appointment() {
                 </div>
               )}
             </div>
+          </div>}
+          {currentStep === 3 && (
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 className="font-semibold text-parish-blue">Review Appointment Request</h3>
+              <dl className="grid gap-3 sm:grid-cols-2 text-sm">
+                <div><dt className="text-gray-500">Full Name</dt><dd className="font-medium">{form.fullname}</dd></div>
+                <div><dt className="text-gray-500">Email</dt><dd className="font-medium break-words">{form.email}</dd></div>
+                <div><dt className="text-gray-500">Contact Number</dt><dd className="font-medium">{form.phone}</dd></div>
+                <div><dt className="text-gray-500">Address</dt><dd className="font-medium">{form.address}</dd></div>
+                <div><dt className="text-gray-500">Purpose</dt><dd className="font-medium">{purposeValue}</dd></div>
+                <div><dt className="text-gray-500">Appointment ID</dt><dd className="font-medium">Generated on submission</dd></div>
+                <div><dt className="text-gray-500">Appointment Date</dt><dd className="font-medium">{new Date(form.appointment_date + 'T12:00:00').toLocaleDateString()}</dd></div>
+                <div><dt className="text-gray-500">Appointment Time</dt><dd className="font-medium">{formatSlotTime(form.appointment_time)}</dd></div>
+              </dl>
+              <p className="text-sm text-slate-600">This request will be submitted as Under Review for parish office approval.</p>
+            </div>
+          )}
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            {currentStep > 0 && <button type="button" className="btn-outline" onClick={backStep}>Back / Edit</button>}
+            {currentStep < APPOINTMENT_STEPS.length - 1 ? (
+              <button type="button" className="btn-primary" onClick={nextStep}>Continue</button>
+            ) : (
+              <button type="submit" className="btn-primary" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Appointment Request'}</button>
+            )}
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Purpose</label>
-            <textarea
-              className="input-field"
-              rows={4}
-              value={form.purpose}
-              onChange={(e) => setForm({ ...form, purpose: e.target.value })}
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={submitting || !form.appointment_date || !form.appointment_time}
-          >
-            {submitting ? 'Booking...' : 'Submit Appointment Request'}
-          </button>
         </form>
       )}
 
@@ -577,7 +698,7 @@ export default function Appointment() {
                   <td className="px-5 py-4 text-slate-700">{a.appointment_time?.slice(0, 5)}</td>
                   <td className="px-5 py-4 text-slate-700">{a.purpose}</td>
                   <td className="px-5 py-4">
-                    <StatusBadge status={a.status} />
+                    <StatusBadge status={a.status === 'Pending' ? 'Under Review' : a.status} />
                   </td>
                   <td className="px-5 py-4">
                     {canCancelAppointment(a.status) ? (

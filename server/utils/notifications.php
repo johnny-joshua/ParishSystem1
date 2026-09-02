@@ -1,5 +1,26 @@
 <?php
 
+function notificationExists(
+    PDO $db,
+    int $userId,
+    string $type,
+    string $referenceType,
+    int $referenceId
+): bool {
+    try {
+        $stmt = $db->prepare(
+            'SELECT id FROM notifications
+             WHERE user_id = ? AND type = ? AND reference_type = ? AND reference_id = ?
+             LIMIT 1'
+        );
+        $stmt->execute([$userId, $type, $referenceType, $referenceId]);
+        return $stmt->fetch() !== false;
+    } catch (Throwable $e) {
+        error_log('Notification existence check failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
 function createNotification(
     PDO $db,
     int $userId,
@@ -11,6 +32,13 @@ function createNotification(
     ?int $referenceId = null
 ): bool {
     try {
+        // Check for a duplicate for the actual recipient and event reference.
+        if ($referenceType && $referenceId) {
+            if (notificationExists($db, $userId, $type, $referenceType, $referenceId)) {
+                return false;
+            }
+        }
+
         $stmt = $db->prepare(
             'INSERT INTO notifications (user_id, type, title, message, link, reference_type, reference_id)
              VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -58,6 +86,7 @@ function notifyAdmins(
     ?string $referenceType = null,
     ?int $referenceId = null
 ): void {
+    // createNotification deduplicates independently for each admin recipient.
     foreach (getAdminUserIds($db) as $adminId) {
         createNotification($db, $adminId, $type, $title, $message, $link, $referenceType, $referenceId);
     }
@@ -85,7 +114,8 @@ function notifyReservationSubmitted(
 function notifyReservationStatusChange(PDO $db, int $reservationId, string $status): void
 {
     $stmt = $db->prepare(
-        'SELECT user_id, service_type, reservation_date FROM reservations WHERE id = ?'
+        'SELECT user_id, service_type, reservation_date, reservation_time, remarks
+         FROM reservations WHERE id = ?'
     );
     $stmt->execute([$reservationId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -96,21 +126,38 @@ function notifyReservationStatusChange(PDO $db, int $reservationId, string $stat
     $userId = (int) $row['user_id'];
     $service = $row['service_type'];
     $date = $row['reservation_date'];
+    $time = $row['reservation_time'];
+    $remarks = trim((string) ($row['remarks'] ?? ''));
 
     $messages = [
-        'Approved' => "Your {$service} reservation on {$date} has been approved.",
-        'Rejected' => "Your {$service} reservation on {$date} was not approved. Check remarks for details.",
+        'Approved' => "Your {$service} reservation has been approved by the Holy Family Parish.",
+        'Rejected' => "Your {$service} reservation has been rejected by the Holy Family Parish.",
         'Completed' => "Your {$service} reservation on {$date} has been marked completed.",
         'Pending' => "Your {$service} reservation is pending review.",
     ];
 
-    $title = "Reservation {$status}";
-    $message = $messages[$status] ?? "Your reservation status changed to {$status}.";
+    if (!isset($messages[$status])) {
+        return;
+    }
+
+    if ($status === 'Approved' || $status === 'Rejected') {
+        $message = $messages[$status] . "\nDate: {$date}\nTime: {$time}";
+        if ($status === 'Rejected' && $remarks !== '') {
+            $message .= "\nReason: {$remarks}";
+        }
+    } else {
+        $message = $messages[$status];
+    }
+
+    $type = in_array($status, ['Approved', 'Rejected'], true)
+        ? 'reservation_' . strtolower($status)
+        : 'reservation';
+    $title = "{$service} Reservation {$status}";
 
     createNotification(
         $db,
         $userId,
-        'reservation',
+        $type,
         $title,
         $message,
         '/reservations',
@@ -141,10 +188,41 @@ function notifyAppointmentSubmitted(
     );
 }
 
+function notifyAdminsOfAppointmentCancellation(PDO $db, int $appointmentId): void
+{
+    $stmt = $db->prepare(
+        'SELECT u.fullname, a.purpose, a.appointment_date, a.appointment_time
+         FROM appointments a
+         INNER JOIN users u ON a.user_id = u.id
+         WHERE a.id = ?
+         LIMIT 1'
+    );
+    $stmt->execute([$appointmentId]);
+    $appointment = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$appointment) {
+        return;
+    }
+
+    $date = (new DateTimeImmutable($appointment['appointment_date']))->format('F j, Y');
+    $time = DateTimeImmutable::createFromFormat('H:i:s', (string) $appointment['appointment_time']);
+    $timeLabel = $time ? $time->format('g:i A') : (string) $appointment['appointment_time'];
+
+    notifyAdmins(
+        $db,
+        'appointment_cancelled',
+        'Appointment Cancelled',
+        "{$appointment['fullname']} has cancelled their appointment for {$appointment['purpose']} scheduled on {$date} at {$timeLabel}.",
+        '/admin/appointments',
+        'appointment',
+        $appointmentId
+    );
+}
+
 function notifyAppointmentStatusChange(PDO $db, int $appointmentId, string $status): void
 {
     $stmt = $db->prepare(
-        'SELECT user_id, appointment_date FROM appointments WHERE id = ?'
+        'SELECT user_id, appointment_date, appointment_time, purpose, remarks
+         FROM appointments WHERE id = ?'
     );
     $stmt->execute([$appointmentId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -158,22 +236,35 @@ function notifyAppointmentStatusChange(PDO $db, int $appointmentId, string $stat
     }
 
     $date = $row['appointment_date'];
+    $time = $row['appointment_time'];
+    $purpose = $row['purpose'];
+    $remarks = trim((string) ($row['remarks'] ?? ''));
 
     $messages = [
-        'Approved' => "Your parish office appointment on {$date} has been approved.",
-        'Rejected' => "Your appointment on {$date} was not approved.",
+        'Approved' => "Your appointment for {$purpose} on {$date} at {$time} has been approved.",
+        'Rejected' => "Your appointment request for {$purpose} has been rejected.",
         'Completed' => "Your appointment on {$date} has been marked completed.",
         'Pending' => "Your appointment is pending review.",
         'Cancelled' => "Your appointment on {$date} has been cancelled.",
     ];
 
+    if (!isset($messages[$status])) {
+        return;
+    }
+
     $title = "Appointment {$status}";
-    $message = $messages[$status] ?? "Your appointment status changed to {$status}.";
+    $message = $messages[$status];
+    if ($status === 'Rejected' && $remarks !== '') {
+        $message .= "\nReason: {$remarks}";
+    }
+    $type = in_array($status, ['Approved', 'Rejected'], true)
+        ? 'appointment_' . strtolower($status)
+        : 'appointment';
 
     createNotification(
         $db,
         $userId,
-        'appointment',
+        $type,
         $title,
         $message,
         '/appointments',

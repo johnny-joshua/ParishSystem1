@@ -104,7 +104,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-16 md:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="w-full py-16 md:py-20 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
             <p className="text-parish-gold font-semibold text-xs uppercase tracking-[0.25em] mb-2">Parish History</p>
@@ -115,12 +115,12 @@ export default function Home() {
         <div className="relative mb-12">
           <div
             ref={featuresScrollRef}
-            className="flex gap-5 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-2 px-0 md:px-0"
+            className="mobile-scroll-snap flex gap-4 sm:gap-5 hide-scrollbar snap-x snap-mandatory pb-2 px-0 md:px-0"
           >
             {CORE_FEATURE_CARDS.map((feature) => (
               <article
                 key={feature.name}
-                className="feature-card group min-w-[285px] sm:min-w-[340px] lg:min-w-[370px] bg-white rounded-[1.6rem] border border-[#e5e7eb] shadow-[0_18px_40px_rgba(15,31,45,0.08)] hover:shadow-[0_26px_56px_rgba(15,31,45,0.12)] transition-all duration-500 snap-start overflow-hidden hover:-translate-y-1"
+                className="feature-card group w-[82vw] min-w-[82vw] sm:w-auto sm:min-w-[340px] lg:min-w-[370px] bg-white rounded-[1.6rem] border border-[#e5e7eb] shadow-[0_18px_40px_rgba(15,31,45,0.08)] hover:shadow-[0_26px_56px_rgba(15,31,45,0.12)] transition-all duration-500 snap-start overflow-hidden hover:-translate-y-1"
               >
                 <div className="relative h-52 overflow-hidden">
                   <img
@@ -156,12 +156,12 @@ export default function Home() {
         <div className="relative">
           <div
             ref={servicesScrollRef}
-            className="flex gap-5 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-2 px-0 md:px-0"
+            className="mobile-scroll-snap flex gap-4 sm:gap-5 hide-scrollbar snap-x snap-mandatory pb-2 px-0 md:px-0"
           >
             {SERVICE_CARDS.map((service) => (
               <article
                 key={service.name}
-                className="service-card group min-w-[285px] sm:min-w-[340px] lg:min-w-[370px] bg-white rounded-[1.6rem] border border-[#e5e7eb] shadow-[0_18px_40px_rgba(15,31,45,0.08)] hover:shadow-[0_26px_56px_rgba(15,31,45,0.12)] transition-all duration-500 snap-start overflow-hidden hover:-translate-y-1"
+                className="service-card group w-[82vw] min-w-[82vw] sm:w-auto sm:min-w-[340px] lg:min-w-[370px] bg-white rounded-[1.6rem] border border-[#e5e7eb] shadow-[0_18px_40px_rgba(15,31,45,0.08)] hover:shadow-[0_26px_56px_rgba(15,31,45,0.12)] transition-all duration-500 snap-start overflow-hidden hover:-translate-y-1"
               >
                 <div className="relative h-52 overflow-hidden">
                   <img

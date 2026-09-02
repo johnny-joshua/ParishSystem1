@@ -4,6 +4,11 @@ import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe 
 const AuthContext = createContext(null);
 const USER_STORAGE_KEY = 'hf_parish_user';
 
+function extractUser(res) {
+  const payload = res?.data;
+  return payload?.user ?? payload?.data?.user ?? null;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +25,7 @@ export function AuthProvider({ children }) {
   const loadUser = useCallback(async () => {
     try {
       const res = await getMe();
-      saveUser(res.data.user);
+      saveUser(extractUser(res));
     } catch {
       saveUser(null);
     } finally {
@@ -42,8 +47,9 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await apiLogin({ email, password });
-    saveUser(res.data.user);
-    return res.data.user;
+    const userData = extractUser(res);
+    saveUser(userData);
+    return userData;
   };
 
   const register = async (formData) => {
@@ -51,8 +57,9 @@ export function AuthProvider({ children }) {
       ...formData,
       confirm_password: formData.confirm_password ?? formData.confirm,
     });
-    saveUser(res.data.user);
-    return res.data.user;
+    const userData = extractUser(res);
+    saveUser(userData);
+    return userData;
   };
 
   const logout = async () => {
