@@ -17,14 +17,14 @@
 return [
     'Baptism' => [
         [
+            'name' => 'Baptismal Certificate',
+            'required' => true,
+            'type' => 'baptismal_certificate',
+        ],
+        [
             'name' => 'Birth Certificate',
             'required' => true,
             'type' => 'birth_certificate',
-        ],
-        [
-            'name' => 'Parent Valid ID',
-            'required' => true,
-            'type' => 'parent_valid_id',
         ],
     ],
 
@@ -63,32 +63,27 @@ return [
             'type' => 'death_certificate',
         ],
         [
-            'name' => 'Funeral Permit',
+            'name' => 'Burial Permit',
             'required' => true,
             'type' => 'funeral_permit',
         ],
         [
-            'name' => 'Valid ID of Requester',
+            'name' => 'Endorsement Form',
             'required' => true,
-            'type' => 'requester_valid_id',
+            'type' => 'endorsement_form',
         ],
         [
-            'name' => 'Baptismal Certificate of Deceased',
+            'name' => 'Authority / Niche Form',
             'required' => false,
-            'type' => 'deceased_baptismal_certificate',
+            'type' => 'authority_niche_form',
         ],
     ],
 
     'Mass Intention' => [
         [
-            'name' => 'Intention Form',
-            'required' => false,
-            'type' => 'intention_form',
-        ],
-        [
-            'name' => 'Valid ID',
-            'required' => false,
-            'type' => 'valid_id',
+            'name' => 'Payment Receipt / Proof of Payment',
+            'required' => true,
+            'type' => 'payment_receipt',
         ],
     ],
 
@@ -97,11 +92,6 @@ return [
             'name' => 'Valid ID',
             'required' => true,
             'type' => 'valid_id',
-        ],
-        [
-            'name' => 'Event Details Document',
-            'required' => false,
-            'type' => 'event_details',
         ],
     ],
 ];

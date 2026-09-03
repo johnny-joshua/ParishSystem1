@@ -34,7 +34,7 @@ function appUrl(string $path = ''): string
         if ($docRoot && $appRoot && str_starts_with($appRoot, $docRoot)) {
             $root = str_replace('\\', '/', substr($appRoot, strlen($docRoot)));
         } else {
-            $root = '/parishSystem';
+            $root = '/ParishSystem1';
         }
         $root = rtrim($root, '/');
     }
@@ -79,7 +79,7 @@ function getFlash(): ?array
 function statusBadgeClass(string $status): string
 {
     return match ($status) {
-        'Pending' => 'warning',
+        'Pending', 'Under Review' => 'warning',
         'Approved' => 'success',
         'Rejected' => 'danger',
         'Completed' => 'info',
@@ -94,7 +94,7 @@ function serviceTypes(): array
 
 function reservationStatuses(): array
 {
-    return ['Pending', 'Approved', 'Rejected', 'Completed'];
+    return ['Pending', 'Under Review', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
 }
 
 function validateEmail(string $email): bool

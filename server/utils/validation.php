@@ -10,6 +10,26 @@ function validateEmail(string $email): bool
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
 
+function normalizeRegistrationName(?string $fullname): string
+{
+    $normalized = preg_replace('/\s+/', ' ', trim((string) $fullname));
+    return strtolower($normalized ?? '');
+}
+
+function normalizeRegistrationPhone(?string $phone): string
+{
+    $digits = preg_replace('/[^0-9]/', '', (string) $phone) ?? '';
+    if (str_starts_with($digits, '639') && strlen($digits) === 12) {
+        return '0' . substr($digits, 2);
+    }
+    return $digits;
+}
+
+function validateGmailAddress(string $email): bool
+{
+    return validateEmail($email) && (bool) preg_match('/^[^@\s]+@gmail\.com$/i', trim($email));
+}
+
 function validatePhilippinePhone(?string $phone): bool
 {
     if ($phone === null || trim($phone) === '') {
@@ -58,15 +78,15 @@ function allowedServiceTypes(): array
 
 function allowedStatuses(): array
 {
-    return ['Pending', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
+    return ['Pending', 'Under Review', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
 }
 
 function validateRegistration(array $data): array
 {
     $errors = validateRequired(['fullname', 'email', 'phone', 'password'], $data);
 
-    if (!empty($data['email']) && !validateEmail($data['email'])) {
-        $errors['email'] = 'Please enter a valid email address.';
+    if (!empty($data['email']) && !validateGmailAddress((string) $data['email'])) {
+        $errors['email'] = 'Please use a valid Gmail address ending in @gmail.com.';
     }
 
     if (!empty($data['phone']) && !validatePhilippinePhone($data['phone'])) {

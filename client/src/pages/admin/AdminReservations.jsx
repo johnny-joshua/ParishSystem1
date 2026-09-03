@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import StatusBadge from '../../components/cards/StatusBadge';
 import Modal from '../../components/forms/Modal';
+import ImagePreviewModal from '../../components/forms/ImagePreviewModal';
 import { API_BASE, STATUSES } from '../../utils/constants';
 import { getReservations, updateReservation, getReservationDocuments, updateReservationDocument } from '../../services/api';
 
@@ -10,6 +11,15 @@ const DOCUMENT_STATUS_COLORS = {
   Verified: 'bg-green-100 text-green-800',
   Rejected: 'bg-red-100 text-red-800',
 };
+
+function parseServiceDetails(value) {
+  try {
+    const parsed = JSON.parse(value || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
 
 async function fetchReservationDocument(documentId) {
   const response = await fetch(`${API_BASE}/reservations/download.php?id=${documentId}`, {
@@ -77,7 +87,12 @@ export default function AdminReservations() {
   const handleAction = async (status) => {
     setActionLoading(true);
     try {
-      await updateReservation({ id: modal.id, status, remarks });
+      let decisionRemarks = remarks;
+      if (status === 'Rejected' && !decisionRemarks.trim()) {
+        decisionRemarks = window.prompt('Enter the rejection reason:') || '';
+        if (!decisionRemarks.trim()) return;
+      }
+      await updateReservation({ id: modal.id, status, remarks: decisionRemarks });
       setModal(null);
       setRemarks('');
       load();
@@ -158,7 +173,7 @@ export default function AdminReservations() {
 
   const stats = {
     total: items.length,
-    pending: items.filter((item) => item.status === 'Pending').length,
+    pending: items.filter((item) => ['Pending', 'Under Review'].includes(item.status)).length,
     approved: items.filter((item) => item.status === 'Approved').length,
     rejected: items.filter((item) => item.status === 'Rejected').length,
   };
@@ -252,7 +267,7 @@ export default function AdminReservations() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end">
-                        {r.status === 'Pending' && (
+                        {['Pending', 'Under Review'].includes(r.status) && (
                           <button
                             type="button"
                             className="rounded-lg border border-[#0f2337] px-3 py-1.5 text-xs font-semibold text-[#0f2337] transition hover:bg-[#0f2337] hover:text-white"
@@ -296,6 +311,37 @@ export default function AdminReservations() {
                 <StatusBadge status={modal.status} />
               </div>
               <p className="mt-3 text-sm text-slate-600">{modal.requirements || 'No additional notes.'}</p>
+              {modal.service_type === 'Mass Intention' && (
+                <div className="mt-3 rounded-xl border border-[#f2e4bb] bg-[#fffaf0] p-3 text-sm text-slate-700">
+                  <p><strong>Requested For:</strong> {modal.intention_name || 'Not provided'}</p>
+                  <p className="mt-1"><strong>Prayer Intention:</strong> {modal.prayer_intention || 'Not provided'}</p>
+                  <p className="mt-1"><strong>Fee:</strong> ₱{Number(modal.payment_amount || 100).toFixed(2)}</p>
+                  <p className="mt-1"><strong>Contact:</strong> {modal.phone || 'Not available'}</p>
+                </div>
+              )}
+              {modal.service_type === 'Funeral' && (() => {
+                const details = parseServiceDetails(modal.service_details);
+                return (
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                    <p><strong>Deceased:</strong> {details.deceased_name || 'Not provided'}</p>
+                    <p className="mt-1"><strong>Date of Death:</strong> {details.date_of_death || 'Not provided'}</p>
+                    <p className="mt-1"><strong>Cemetery:</strong> {details.cemetery_type || 'Not provided'}</p>
+                    <p className="mt-1"><strong>Funeral Service:</strong> {details.funeral_service || 'Not provided'}</p>
+                    <p className="mt-1"><strong>Residence:</strong> {details.residence || 'Not provided'}</p>
+                  </div>
+                );
+              })()}
+              {modal.service_type === 'Private Mass' && (() => {
+                const details = parseServiceDetails(modal.service_details);
+                return (
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                    <p><strong>Purpose:</strong> {details.purpose || 'Not provided'}</p>
+                    <p className="mt-1"><strong>Location:</strong> {details.location_type || 'Not provided'}</p>
+                    <p className="mt-1"><strong>Address:</strong> {[details.house_block_lot, details.barangay, details.municipality, details.province].filter(Boolean).join(', ') || 'Not provided'}</p>
+                    <p className="mt-1"><strong>Location Contact:</strong> {details.location_contact_name || 'Not provided'} {details.location_contact_number ? `(${details.location_contact_number})` : ''}</p>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -382,7 +428,7 @@ export default function AdminReservations() {
               )}
             </div>
 
-            {documentSummary && !documentSummary.complete && modal.status === 'Pending' && (
+            {documentSummary && !documentSummary.complete && ['Pending', 'Under Review'].includes(modal.status) && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                 ⚠️ Reservation cannot be approved until all required documents are verified.
               </div>
@@ -420,21 +466,13 @@ export default function AdminReservations() {
         )}
       </Modal>
 
-      {previewDoc && previewUrl && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={closePreview}>
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-2xl bg-white" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 p-4">
-              <h3 className="font-semibold text-[#0f2337]">{previewDoc.document_name}</h3>
-              <button type="button" className="text-gray-400 hover:text-gray-600" onClick={closePreview}>
-                ✕
-              </button>
-            </div>
-            <div className="p-4">
-              <img src={previewUrl} alt={previewDoc.document_name} className="mx-auto h-auto max-w-full" />
-            </div>
-          </div>
-        </div>
-      )}
+      <ImagePreviewModal
+        isOpen={!!previewDoc && !!previewUrl}
+        src={previewUrl}
+        alt={previewDoc?.document_name}
+        title={previewDoc?.document_name || 'Image Preview'}
+        onClose={closePreview}
+      />
     </DashboardLayout>
   );
 }

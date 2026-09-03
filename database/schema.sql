@@ -66,9 +66,15 @@ CREATE TABLE IF NOT EXISTS reservations (
   reservation_date DATE NOT NULL,
   reservation_time TIME NOT NULL,
   requirements TEXT NULL,
-  status ENUM('Pending', 'Approved', 'Rejected', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Pending',
+  service_details JSON NULL,
+  intention_name VARCHAR(255) NULL,
+  prayer_intention TEXT NULL,
+  payment_amount DECIMAL(10,2) NULL,
+  payment_method VARCHAR(50) NULL,
+  status ENUM('Pending', 'Under Review', 'Approved', 'Rejected', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Pending',
   remarks TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_reservations_user (user_id),
   INDEX idx_reservations_status (status),
@@ -149,7 +155,8 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_notifications_user (user_id),
-  INDEX idx_notifications_read (user_id, is_read)
+  INDEX idx_notifications_read (user_id, is_read),
+  UNIQUE KEY uk_notifications_event (user_id, type, reference_type, reference_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
@@ -159,12 +166,15 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE TABLE IF NOT EXISTS parish_records (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NULL,
+  reservation_id INT NULL,
   service_type VARCHAR(100) NOT NULL,
   details TEXT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE SET NULL,
   INDEX idx_parish_records_user (user_id),
   INDEX idx_parish_records_service (service_type)
+  ,UNIQUE KEY uk_parish_records_reservation (reservation_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------

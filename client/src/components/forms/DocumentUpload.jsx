@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import ImagePreviewModal from './ImagePreviewModal';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -15,6 +16,7 @@ export default function DocumentUpload({
   const [uploading, setUploading] = useState({});
   const [errors, setErrors] = useState({});
   const [previews, setPreviews] = useState({});
+  const [preview, setPreview] = useState(null);
   const fileInputRefs = useRef({});
 
   const handleDrag = (e) => {
@@ -272,10 +274,7 @@ export default function DocumentUpload({
                           {previews[req.type] && (
                             <button
                               type="button"
-                              onClick={() => {
-                                const win = window.open();
-                                win.document.write(`<img src="${previews[req.type]}" style="max-width:100%">`);
-                              }}
+                              onClick={() => setPreview({ src: previews[req.type], alt: file.name })}
                               className="text-xs text-blue-600 underline"
                             >
                               Preview
@@ -316,6 +315,12 @@ export default function DocumentUpload({
       ) : (
         <p className="text-sm text-gray-500">No document requirements for this service.</p>
       )}
+      <ImagePreviewModal
+        isOpen={!!preview}
+        src={preview?.src}
+        alt={preview?.alt}
+        onClose={() => setPreview(null)}
+      />
     </div>
   );
 }

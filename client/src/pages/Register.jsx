@@ -25,6 +25,11 @@ export default function Register() {
     e.preventDefault();
     setError('');
     setFieldErrors({});
+    const normalizedEmail = form.email.trim();
+    if (!/^[^@\s]+@gmail\.com$/i.test(normalizedEmail)) {
+      setFieldErrors({ email: 'Please use a valid Gmail address ending in @gmail.com.' });
+      return;
+    }
     if (form.password !== form.confirm) {
       setFieldErrors({ confirm: 'Passwords do not match.' });
       return;
@@ -32,14 +37,14 @@ export default function Register() {
     setLoading(true);
     try {
       await register({
-        fullname: form.fullname,
-        email: form.email,
-        phone: form.phone,
-        address: form.address,
+        fullname: form.fullname.trim(),
+        email: normalizedEmail,
+        phone: form.phone.trim(),
+        address: form.address.trim(),
         password: form.password,
         confirm_password: form.confirm,
       });
-      navigate('/dashboard', { replace: true });
+      navigate('/', { replace: true, state: { registered: true } });
     } catch (err) {
       setError(err.message || 'Registration failed.');
       if (err.errors) setFieldErrors(err.errors);

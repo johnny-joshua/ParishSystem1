@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-$base = getenv('API_BASE') ?: 'http://localhost/parishSystem/server/api';
+$base = getenv('API_BASE') ?: 'http://localhost/ParishSystem1/server/api';
 $cookieA = sys_get_temp_dir() . '/parish_cancel_user_a.txt';
 $cookieB = sys_get_temp_dir() . '/parish_cancel_user_b.txt';
 $cookieAdmin = sys_get_temp_dir() . '/parish_cancel_admin.txt';

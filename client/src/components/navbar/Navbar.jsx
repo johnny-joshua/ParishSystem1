@@ -50,7 +50,7 @@ function ParishionerMenuItem({ to, icon: Icon, children, badge, onSelect }) {
   );
 }
 
-export default function Navbar() {
+export default function Navbar({ dashboard = false, isSidebarOpen = false, onSidebarToggle = () => {} }) {
   const { user, logout, isAdmin, login } = useAuth();
   const { unreadCount } = useNotifications();
   const { t } = useSettings();
@@ -62,6 +62,7 @@ export default function Navbar() {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profileRef = useRef(null);
   const initials = (user?.fullname || '')
     .split(' ')
@@ -110,20 +111,51 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', onDocMouseDown);
   }, []);
 
+  useEffect(() => {
+    document.body.classList.toggle('mobile-nav-open', mobileMenuOpen);
+    return () => document.body.classList.remove('mobile-nav-open');
+  }, [mobileMenuOpen]);
+
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#0f2337]/95 backdrop-blur-xl shadow-[0_12px_28px_rgba(6,14,22,0.14)]">
+    <>
+      <nav className={`fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0f2337]/95 backdrop-blur-xl shadow-[0_12px_28px_rgba(6,14,22,0.14)] ${dashboard ? '2xl:left-64' : ''}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-2 sm:gap-5 h-16 sm:h-20">
-          {!user && <div className="w-0 md:w-0" aria-hidden="true" />}
+          {!user && (
+            <button
+              type="button"
+              aria-label="Open navigation menu"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((value) => !value)}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-lg text-white sm:hidden"
+            >
+              {mobileMenuOpen ? '×' : '☰'}
+            </button>
+          )}
 
           {user && (
-            <div className="flex min-w-0 items-center lg:min-w-[180px] lg:shrink-0">
-              <Link
-                to="/"
-                className="text-[10px] sm:text-sm md:text-base font-display font-bold tracking-[0.08em] uppercase text-[#f7f3eb] transition-colors duration-200 hover:text-[#d7b57a]"
+            <div className="flex min-w-0 items-center gap-2 2xl:min-w-[180px] 2xl:shrink-0">
+              <button
+                type="button"
+                aria-label={isSidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={isSidebarOpen}
+                onClick={onSidebarToggle}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-lg text-white transition hover:bg-white/15 2xl:hidden"
               >
-                Holy Family Parish
-              </Link>
+                {isSidebarOpen ? '×' : '☰'}
+              </button>
+              {dashboard ? (
+                <span className="text-[10px] sm:text-sm md:text-base font-display font-bold tracking-[0.08em] uppercase text-[#f7f3eb]">
+                  Holy Family Parish
+                </span>
+              ) : (
+                <Link
+                  to="/"
+                  className="text-[10px] sm:text-sm md:text-base font-display font-bold tracking-[0.08em] uppercase text-[#f7f3eb] transition-colors duration-200 hover:text-[#d7b57a]"
+                >
+                  Holy Family Parish
+                </Link>
+              )}
             </div>
           )}
 
@@ -160,6 +192,26 @@ export default function Navbar() {
             </div>
           </div>
 
+          {!user && mobileMenuOpen && (
+            <div className="absolute left-3 right-3 top-full mt-2 rounded-2xl border border-white/10 bg-[#0f2337] p-2 shadow-[0_18px_40px_rgba(6,14,22,0.24)] sm:hidden">
+              {[
+                ['/#home', t('nav.home')],
+                ['/#services', t('nav.services')],
+                ['/#about', t('nav.about')],
+                ['/#contact', t('nav.contact')],
+              ].map(([href, label]) => (
+                <a
+                  key={href}
+                  href={href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-xl px-3 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/90 hover:bg-white/10 hover:text-[#d7b57a]"
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center justify-end gap-2 sm:gap-3 min-w-0">
             {user ? (
               <div className="relative" ref={profileRef}>
@@ -190,8 +242,8 @@ export default function Navbar() {
                     role="menu"
                     className={
                       isAdmin
-                        ? 'absolute right-0 mt-2 w-64 overflow-hidden rounded-[22px] border border-slate-200 bg-white text-gray-800 shadow-[0_26px_60px_rgba(15,31,45,0.16)] ring-1 ring-black/5 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
-                        : 'absolute right-0 mt-2.5 w-64 rounded-2xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-2xl shadow-gray-900/10 ring-1 ring-gray-200/80 dark:ring-gray-700 overflow-hidden'
+                        ? 'absolute right-0 mt-2 w-[min(16rem,calc(100vw-2rem))] max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-[22px] border border-slate-200 bg-white text-gray-800 shadow-[0_26px_60px_rgba(15,31,45,0.16)] ring-1 ring-black/5 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
+                        : 'absolute right-0 mt-2.5 w-[min(16rem,calc(100vw-2rem))] max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-2xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-2xl shadow-gray-900/10 ring-1 ring-gray-200/80 dark:ring-gray-700'
                     }
                   >
                     <div
@@ -321,7 +373,7 @@ export default function Navbar() {
                   </button>
 
                   {accountOpen && (
-                    <div className="absolute right-0 mt-3 w-[22rem] overflow-hidden rounded-[26px] border border-[#e8dfd0] bg-white shadow-[0_26px_60px_rgba(15,31,45,0.18)] ring-1 ring-black/5">
+                    <div className="absolute left-1/2 right-auto mt-3 w-[min(22rem,calc(100vw-1.5rem))] -translate-x-1/2 overflow-hidden rounded-[26px] border border-[#e8dfd0] bg-white shadow-[0_26px_60px_rgba(15,31,45,0.18)] ring-1 ring-black/5 sm:left-auto sm:right-0 sm:w-[22rem] sm:translate-x-0">
                       <div className="bg-gradient-to-r from-[#0f2337] via-[#12314b] to-[#1d4563] px-4 py-4 text-white">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
@@ -471,6 +523,8 @@ export default function Navbar() {
           </div>
         </div>
       </Modal>
-    </nav>
+      </nav>
+      <div className="h-16 sm:h-20" aria-hidden="true" />
+    </>
   );
 }

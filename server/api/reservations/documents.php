@@ -207,31 +207,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
         
         $db->commit();
         
-        // Notify the user only when the document status actually changes.
-        $documentName = $document['document_name'];
         $docUserId = (int) $document['reservation_user_id'];
         
         if ($status === 'Verified') {
-            $message = "Your {$documentName} has been verified.";
-            $title = 'Document Verified';
-            $smsMessage = "Your document ({$documentName}) has been verified.";
+            $smsMessage = "Your document ({$document['document_name']}) has been verified.";
         } else {
-            $message = "Your {$documentName} requires replacement. Remarks: {$remarks}";
-            $title = 'Document Rejected';
-            $smsMessage = "Your document ({$documentName}) was rejected. Please re-upload. Remarks: {$remarks}";
-        }
-
-        if ($statusChanged) {
-            createNotification(
-                $db,
-                $docUserId,
-                'document',
-                $title,
-                $message,
-                '/reservations',
-                'reservation_document',
-                $documentId
-            );
+            $smsMessage = "Your document ({$document['document_name']}) was rejected. Please re-upload. Remarks: {$remarks}";
         }
 
         // SMS only when document status actually changes

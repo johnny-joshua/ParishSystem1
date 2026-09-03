@@ -31,9 +31,18 @@ function createNotification(
     ?string $referenceType = null,
     ?int $referenceId = null
 ): bool {
+    $lockName = null;
     try {
-        // Check for a duplicate for the actual recipient and event reference.
         if ($referenceType && $referenceId) {
+            // Serialize the check and insert for this exact recipient/event.
+            // The reference columns are nullable because some notifications are not event-linked.
+            $lockName = "notification:{$userId}:{$type}:{$referenceType}:{$referenceId}";
+            $lockStmt = $db->prepare('SELECT GET_LOCK(?, 10)');
+            $lockStmt->execute([$lockName]);
+            if ((int) $lockStmt->fetchColumn() !== 1) {
+                return false;
+            }
+
             if (notificationExists($db, $userId, $type, $referenceType, $referenceId)) {
                 return false;
             }
@@ -48,6 +57,14 @@ function createNotification(
     } catch (Throwable $e) {
         error_log('Notification insert failed: ' . $e->getMessage());
         return false;
+    } finally {
+        if ($lockName !== null) {
+            try {
+                $db->query('SELECT RELEASE_LOCK(' . $db->quote($lockName) . ')');
+            } catch (Throwable $e) {
+                error_log('Notification lock release failed: ' . $e->getMessage());
+            }
+        }
     }
 }
 
@@ -128,6 +145,18 @@ function notifyReservationStatusChange(PDO $db, int $reservationId, string $stat
     $date = $row['reservation_date'];
     $time = $row['reservation_time'];
     $remarks = trim((string) ($row['remarks'] ?? ''));
+
+    if ($service === 'Mass Intention' && in_array($status, ['Approved', 'Rejected'], true)) {
+        $intentionStmt = $db->prepare('SELECT intention_name FROM reservations WHERE id = ?');
+        $intentionStmt->execute([$reservationId]);
+        $intention = (string) ($intentionStmt->fetchColumn() ?: 'the requested intention');
+        $title = "Mass Intention {$status}";
+        $message = $status === 'Approved'
+            ? "Your Mass Intention request for {$intention} scheduled on {$date} at {$time} has been approved."
+            : "Your Mass Intention request for {$intention} has been rejected.\nReason: {$remarks}";
+        createNotification($db, $userId, 'reservation_' . strtolower($status), $title, $message, '/reservations', 'reservation', $reservationId);
+        return;
+    }
 
     $messages = [
         'Approved' => "Your {$service} reservation has been approved by the Holy Family Parish.",

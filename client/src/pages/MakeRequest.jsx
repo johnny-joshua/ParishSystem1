@@ -4,7 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 export default function MakeRequest() {
   return (
     <DashboardLayout>
-      <div className="max-w-5xl">
+      <div className="mx-auto w-full max-w-5xl">
         <div className="mb-8 overflow-hidden rounded-[28px] border border-[#e8dfd0] bg-[#0f2337] px-5 py-5 shadow-[0_26px_60px_rgba(15,31,45,0.18)] sm:px-7">
           <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#d7b57a]">Parish services</p>
           <h1 className="mt-2 text-3xl font-display text-white">Make a Request</h1>

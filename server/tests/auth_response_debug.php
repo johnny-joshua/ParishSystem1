@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-$base = 'http://localhost/parishSystem/server/api';
+$base = 'http://localhost/ParishSystem1/server/api';
 $cookieFile = sys_get_temp_dir() . '/parish_auth_debug.txt';
 @unlink($cookieFile);
 

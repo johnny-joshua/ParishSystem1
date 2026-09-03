@@ -15,7 +15,7 @@ $db = getDB();
 
 $stats = [
     'total_users' => (int) $db->query("SELECT COUNT(*) FROM users WHERE role = 'user'")->fetchColumn(),
-    'pending_reservations' => (int) $db->query("SELECT COUNT(*) FROM reservations WHERE status = 'Pending'")->fetchColumn(),
+    'pending_reservations' => (int) $db->query("SELECT COUNT(*) FROM reservations WHERE status IN ('Pending', 'Under Review')")->fetchColumn(),
     'pending_appointments' => (int) $db->query("SELECT COUNT(*) FROM appointments WHERE status = 'Pending'")->fetchColumn(),
     'total_records' => (int) $db->query('SELECT COUNT(*) FROM parish_records')->fetchColumn(),
     'approved_reservations' => (int) $db->query("SELECT COUNT(*) FROM reservations WHERE status = 'Approved'")->fetchColumn(),

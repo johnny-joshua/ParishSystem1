@@ -7,7 +7,7 @@ Full-stack application: **React + Tailwind** frontend, **PHP REST API** backend,
 ## Project structure
 
 ```
-parishSystem/
+ParishSystem1/
 ├── client/          # React (Vite) + Tailwind
 ├── server/          # PHP JSON API (session auth)
 ├── database/        # MySQL schema & seed
@@ -27,7 +27,7 @@ parishSystem/
 
 ### 2. PHP API
 
-- API base: `http://localhost/parishSystem/server/api`
+- API base: `http://localhost/ParishSystem1/server/api`
 - Configure `server/.env` if needed (DB credentials, CORS)
 
 ### 3. React frontend
@@ -40,7 +40,7 @@ npm run dev
 
 Open: **http://localhost:5173**
 
-The Vite dev server proxies `/api` → `http://localhost/parishSystem/server/api` so session cookies work during development.
+The Vite dev server proxies `/api` → `http://localhost/ParishSystem1/server/api` so session cookies work during development.
 
 ### Production build
 
@@ -49,7 +49,7 @@ cd client
 npm run build
 ```
 
-Serve `client/dist` via Apache or copy into your web root. Set `VITE_API_URL=http://localhost/parishSystem/server/api` in `.env` if not using the Vite proxy.
+Serve `client/dist` via Apache or copy into your web root. Set `VITE_API_URL=http://localhost/ParishSystem1/server/api` in `.env` if not using the Vite proxy.
 
 ## Features
 

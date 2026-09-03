@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-$base = getenv('API_BASE') ?: 'http://localhost/parishSystem/server/api';
+$base = getenv('API_BASE') ?: 'http://localhost/ParishSystem1/server/api';
 $cookieFile = sys_get_temp_dir() . '/parish_appt_notif_audit.txt';
 
 function resetSession(): void

@@ -4,7 +4,7 @@ declare(strict_types=1);
 $cookieFile = sys_get_temp_dir() . '/parish_cookie_path.txt';
 @unlink($cookieFile);
 
-$ch = curl_init('http://localhost/parishSystem/server/api/auth/login.php');
+$ch = curl_init('http://localhost/ParishSystem1/server/api/auth/login.php');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HEADER => true,

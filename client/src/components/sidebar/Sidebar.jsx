@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import {
   IconAppointments,
+  IconCalendar,
   IconDashboard,
   IconReservations,
 } from '../icons/ParishionerNavIcons';
@@ -20,6 +21,7 @@ export default function Sidebar({ isMobileOpen = false, onClose = () => {} }) {
 
   const adminLinks = [
     { to: '/admin/dashboard', label: t('nav.dashboard'), icon: '🏠' },
+    { to: '/admin/parish-calendar', label: 'Parish Calendar', Icon: IconCalendar },
     { to: '/admin/reservations', label: t('sidebar.reservations'), icon: '📋' },
     { to: '/admin/appointments', label: t('sidebar.appointments'), icon: '📅' },
     { to: '/admin/records', label: t('sidebar.records'), icon: '📁' },
@@ -31,8 +33,8 @@ export default function Sidebar({ isMobileOpen = false, onClose = () => {} }) {
   if (isAdmin) {
     return (
       <aside
-        className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-[82vw] max-w-[280px] border-r border-slate-200 bg-gradient-to-b from-[#f8fafc] to-[#f3f5f8] shadow-[0_12px_28px_rgba(15,31,45,0.06)] transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 lg:static lg:w-64 lg:translate-x-0 lg:shadow-[0_12px_28px_rgba(15,31,45,0.06)] ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        className={`fixed left-0 top-16 sm:top-20 z-40 h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] w-[82vw] max-w-[280px] overflow-y-auto border-r border-slate-200 bg-gradient-to-b from-[#f8fafc] to-[#f3f5f8] shadow-[0_12px_28px_rgba(15,31,45,0.06)] transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 2xl:top-0 2xl:h-screen 2xl:w-64 2xl:translate-x-0 2xl:shadow-[0_12px_28px_rgba(15,31,45,0.06)] ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full 2xl:translate-x-0'
         }`}
       >
         <div className="flex h-full flex-col p-4">
@@ -57,7 +59,7 @@ export default function Sidebar({ isMobileOpen = false, onClose = () => {} }) {
                         isActive ? 'bg-white/10 text-[#d7b57a]' : 'bg-slate-100 text-slate-600 group-hover:bg-[#e9dcc0] group-hover:text-[#0f2337]'
                       }`}
                     >
-                      {link.icon}
+                      {link.Icon ? <link.Icon className="h-[18px] w-[18px]" /> : link.icon}
                     </span>
                     <span className="leading-snug">{link.label}</span>
                     {isActive && <span className="ml-auto h-2 w-2 rounded-full bg-[#d7b57a]" aria-hidden="true" />}
@@ -73,8 +75,8 @@ export default function Sidebar({ isMobileOpen = false, onClose = () => {} }) {
 
   return (
     <aside
-      className={`fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-[82vw] max-w-[280px] overflow-y-auto border-r border-gray-200/80 bg-white shadow-sm transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 lg:static lg:w-64 lg:translate-x-0 lg:shadow-sm ${
-        isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      className={`fixed left-0 top-16 sm:top-20 z-40 h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] w-[82vw] max-w-[280px] overflow-y-auto border-r border-gray-200/80 bg-white shadow-sm transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 2xl:top-0 2xl:h-screen 2xl:w-64 2xl:translate-x-0 2xl:shadow-sm ${
+        isMobileOpen ? 'translate-x-0' : '-translate-x-full 2xl:translate-x-0'
       }`}
     >
       <div className="flex flex-col h-full px-3 py-5">

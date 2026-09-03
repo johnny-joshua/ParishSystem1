@@ -57,9 +57,8 @@ export function AuthProvider({ children }) {
       ...formData,
       confirm_password: formData.confirm_password ?? formData.confirm,
     });
-    const userData = extractUser(res);
-    saveUser(userData);
-    return userData;
+    // Registration only creates the account; do not auto-authenticate the user.
+    return extractUser(res);
   };
 
   const logout = async () => {

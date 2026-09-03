@@ -21,12 +21,48 @@ if (!empty($errors)) {
 }
 
 $db = getDB();
+$fullname = trim((string) $data['fullname']);
 $email = strtolower(trim($data['email']));
+$phone = trim((string) $data['phone']);
 
-$check = $db->prepare('SELECT id FROM users WHERE email = ?');
-$check->execute([$email]);
-if ($check->fetch()) {
-    errorResponse('This email is already registered.', 409);
+// Serialize equivalent registrations so the duplicate checks and insert are atomic.
+$lockNames = [
+    'email:' . hash('sha256', $email),
+    'name:' . hash('sha256', normalizeRegistrationName($fullname)),
+    'phone:' . hash('sha256', normalizeRegistrationPhone($phone)),
+];
+sort($lockNames, SORT_STRING);
+$acquiredLocks = [];
+foreach ($lockNames as $lockName) {
+    $lock = $db->prepare('SELECT GET_LOCK(?, 10)');
+    $lock->execute([$lockName]);
+    if ((int) $lock->fetchColumn() !== 1) {
+        foreach ($acquiredLocks as $acquiredLock) {
+            $db->query('SELECT RELEASE_LOCK(' . $db->quote($acquiredLock) . ')');
+        }
+        errorResponse('Registration is busy. Please try again.', 409);
+    }
+    $acquiredLocks[] = $lockName;
+}
+
+$check = $db->query("SELECT fullname, phone, email FROM users WHERE role = 'user'");
+$duplicateErrors = [];
+foreach ($check->fetchAll() as $existing) {
+    if (normalizeRegistrationName($existing['fullname']) === normalizeRegistrationName($fullname)) {
+        $duplicateErrors['fullname'] = 'Name is already used.';
+    }
+    if (normalizeRegistrationPhone($existing['phone']) === normalizeRegistrationPhone($phone)) {
+        $duplicateErrors['phone'] = 'Phone number is already used.';
+    }
+    if (strtolower(trim((string) $existing['email'])) === $email) {
+        $duplicateErrors['email'] = 'This email is already registered.';
+    }
+}
+if (!empty($duplicateErrors)) {
+    foreach ($acquiredLocks as $acquiredLock) {
+        $db->query('SELECT RELEASE_LOCK(' . $db->quote($acquiredLock) . ')');
+    }
+    errorResponse('Registration details are already in use.', 409, $duplicateErrors);
 }
 
 $hash = password_hash($data['password'], PASSWORD_DEFAULT);
@@ -35,9 +71,9 @@ $stmt = $db->prepare(
     'INSERT INTO users (fullname, email, phone, address, password, role) VALUES (?, ?, ?, ?, ?, ?)'
 );
 $stmt->execute([
-    trim($data['fullname']),
+    $fullname,
     $email,
-    trim($data['phone']),
+    $phone,
     trim($data['address'] ?? ''),
     $hash,
     'user',
@@ -45,13 +81,16 @@ $stmt->execute([
 
 $user = [
     'id' => (int) $db->lastInsertId(),
-    'fullname' => trim($data['fullname']),
+    'fullname' => $fullname,
     'email' => $email,
-    'phone' => trim($data['phone']),
+    'phone' => $phone,
     'address' => trim($data['address'] ?? ''),
     'role' => 'user',
 ];
 
-setUserSession($user);
+foreach ($acquiredLocks as $acquiredLock) {
+    $db->query('SELECT RELEASE_LOCK(' . $db->quote($acquiredLock) . ')');
+}
 
+// Registration only creates the account; the parishioner must log in separately.
 successResponse(['user' => $user], 'Registration successful.', 201);

@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusBadge from '../components/cards/StatusBadge';
 import LoadingSpinner from '../components/forms/LoadingSpinner';
 import DocumentUpload from '../components/forms/DocumentUpload';
+import FuneralReservationForm from '../components/forms/FuneralReservationForm';
+import PrivateMassReservationForm from '../components/forms/PrivateMassReservationForm';
 import {
   SERVICE_TYPES,
   SERVICE_LABELS,
@@ -31,6 +34,15 @@ const SERVICE_STEPS = [
   { id: 'review', label: 'Review' },
 ];
 
+const BAPTISM_STEPS = [
+  { id: 'service', label: 'Select Service' },
+  { id: 'child', label: 'Child Information' },
+  { id: 'parents', label: 'Parent / Sponsor' },
+  { id: 'schedule', label: 'Date & Time' },
+  { id: 'requirements', label: 'Requirements' },
+  { id: 'review', label: 'Review & Submit' },
+];
+
 const SERVICE_DETAIL_FIELDS = {
   Marriage: [
     { key: 'bride_name', label: 'Bride Name' },
@@ -47,16 +59,25 @@ const SERVICE_DETAIL_FIELDS = {
     { key: 'service_details', label: 'Service Details / Notes' },
   ],
   Baptism: [
-    { key: 'child_name', label: 'Child Name' },
-    { key: 'child_birthdate', label: 'Child Birthdate' },
-    { key: 'parents_name', label: 'Parents / Guardians' },
-    { key: 'godparents', label: 'Godparents' },
-    { key: 'baptism_date', label: 'Preferred Baptism Date' },
+    { key: 'child_first_name', label: 'First Name' },
+    { key: 'child_middle_name', label: 'Middle Name' },
+    { key: 'child_last_name', label: 'Last Name' },
+    { key: 'child_birthdate', label: 'Date of Birth' },
+    { key: 'child_birth_place', label: 'Place of Birth' },
+    { key: 'child_sex', label: 'Sex' },
+    { key: 'child_address_street', label: 'House / Street' },
+    { key: 'child_address_barangay', label: 'Barangay' },
+    { key: 'child_address_municipality', label: 'Municipality' },
+    { key: 'child_address_province', label: 'Province' },
+    { key: 'father_full_name', label: "Father's Full Name" },
+    { key: 'mother_full_name', label: "Mother's Full Name" },
+    { key: 'requester_contact_number', label: 'Contact Number' },
+    { key: 'sponsor_name', label: 'Ninong / Ninang Name' },
+    { key: 'sponsor_contact_number', label: 'Ninong / Ninang Contact Number' },
   ],
   'Mass Intention': [
     { key: 'intention_name', label: 'Intention Name / Requested For' },
-    { key: 'offering_amount', label: 'Offering Amount (Optional)' },
-    { key: 'celebrant_note', label: 'Special Request / Prayer Intention' },
+    { key: 'prayer_intention', label: 'Special Request / Prayer Intention' },
   ],
   'Private Mass': [
     { key: 'event_name', label: 'Event / Occasion Name' },
@@ -116,6 +137,7 @@ function formatSlotTime(time) {
 }
 
 export default function Reservation() {
+  const { user } = useAuth();
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -127,6 +149,8 @@ export default function Reservation() {
     requirements: '',
     serviceDetails: getDefaultServiceDetails('Marriage'),
   });
+  const isBaptismFlow = form.service_type === 'Baptism';
+  const activeSteps = isBaptismFlow ? BAPTISM_STEPS : SERVICE_STEPS;
   const [slotItems, setSlotItems] = useState([]);
   const [calendarMonth, setCalendarMonth] = useState(toIsoMonth(new Date()));
   const [dateStatuses, setDateStatuses] = useState({});
@@ -285,18 +309,27 @@ export default function Reservation() {
   };
 
   const goToStep = (stepIndex) => {
-    if (stepIndex < 0 || stepIndex > SERVICE_STEPS.length - 1) return;
+    if (stepIndex < 0 || stepIndex > currentStep) return;
     setCurrentStep(stepIndex);
   };
 
   const getRequiredServiceDetails = () => SERVICE_DETAIL_FIELDS[form.service_type] || [];
 
   const canAdvanceFromService = () => Boolean(form.service_type);
-  const canAdvanceFromDetails = () => {
-    const fields = getRequiredServiceDetails();
+  const canAdvanceFromDetails = (stepToValidate = currentStep) => {
+    const allFields = getRequiredServiceDetails();
+    const fields = isBaptismFlow
+      ? stepToValidate === 1 ? allFields.slice(0, 10) : allFields.slice(10)
+      : allFields;
     return fields.length === 0 || fields.every((field) => String(form.serviceDetails[field.key] || '').trim());
   };
-  const canAdvanceFromSchedule = () => Boolean(form.reservation_date && form.reservation_time);
+  const canAdvanceFromSchedule = () => Boolean(
+    form.reservation_date &&
+    form.reservation_time &&
+    slotItems.some((slot) => slot.time === form.reservation_time && slot.status === 'available')
+  );
+  const missingRequiredDocuments = () => docRequirements
+    .filter((document) => document.required && !uploadedFiles[document.type]);
 
   const handleNextStep = () => {
     setError('');
@@ -305,23 +338,29 @@ export default function Reservation() {
       return;
     }
     if (currentStep === 1 && !canAdvanceFromDetails()) {
-      setError('Please complete all personal information fields before continuing.');
+      const message = isBaptismFlow
+        ? 'Please complete all child information fields before continuing.'
+        : 'Please complete all personal information fields before continuing.';
+      setError(message);
       return;
     }
-    if (currentStep === 2 && !canAdvanceFromSchedule()) {
+    if (currentStep === 2 && isBaptismFlow && !canAdvanceFromDetails()) {
+      setError('Please complete all parent and sponsor information fields before continuing.');
+      return;
+    }
+    if ((isBaptismFlow ? currentStep === 3 : currentStep === 2) && !canAdvanceFromSchedule()) {
       setError('Please choose an available date and time slot.');
       return;
     }
-    if (currentStep === 3) {
-      const requiredDocs = docRequirements.filter((d) => d.required);
-      const missingRequired = requiredDocs.filter((d) => !uploadedFiles[d.type]);
+    if ((isBaptismFlow ? currentStep === 4 : currentStep === 3)) {
+      const missingRequired = missingRequiredDocuments();
       if (missingRequired.length > 0) {
         setError(`Please upload all required documents: ${missingRequired.map((d) => d.name).join(', ')}`);
         return;
       }
     }
 
-    setCurrentStep((prev) => Math.min(prev + 1, SERVICE_STEPS.length - 1));
+    setCurrentStep((prev) => Math.min(prev + 1, activeSteps.length - 1));
   };
 
   const handleBackStep = () => {
@@ -331,9 +370,17 @@ export default function Reservation() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (currentStep !== activeSteps.length - 1) return;
     if (submitInProgress.current) return;
     setError('');
     setMsg('');
+    const missingStepDocuments = missingRequiredDocuments();
+    if (!canAdvanceFromDetails(1) || (isBaptismFlow && !canAdvanceFromDetails(2)) || !canAdvanceFromSchedule() || missingStepDocuments.length > 0) {
+      setError(missingStepDocuments.length > 0
+        ? `Please upload all required documents: ${missingStepDocuments.map((d) => d.name).join(', ')}`
+        : 'Please complete all required fields and select an available date and time slot.');
+      return;
+    }
     if (!form.reservation_time) {
       setError('Please select an available time slot.');
       return;
@@ -351,15 +398,23 @@ export default function Reservation() {
     try {
       setUploadingDocs(true);
       const mergedRequirements = buildServiceRequirements(form.serviceDetails, form.requirements);
-      const payload = {
-        ...form,
-        requirements: mergedRequirements,
-      };
+      let payload = { ...form, requirements: mergedRequirements };
+      if (form.service_type === 'Mass Intention') {
+        const receipt = uploadedFiles.payment_receipt;
+        payload = new FormData();
+        payload.append('service_type', form.service_type);
+        payload.append('reservation_date', form.reservation_date);
+        payload.append('reservation_time', form.reservation_time);
+        payload.append('requirements', mergedRequirements);
+        payload.append('intention_name', form.serviceDetails.intention_name);
+        payload.append('prayer_intention', form.serviceDetails.prayer_intention);
+        payload.append('payment_receipt', receipt);
+      }
 
       const response = await createReservation(payload);
       const reservationId = response.data.id;
       
-      const uploadPromises = Object.entries(uploadedFiles).map(([docType, file]) => {
+      const uploadPromises = form.service_type === 'Mass Intention' ? [] : Object.entries(uploadedFiles).map(([docType, file]) => {
         const formData = new FormData();
         formData.append('reservation_id', reservationId);
         formData.append('document_type', docType);
@@ -455,7 +510,7 @@ export default function Reservation() {
   }
 
   const totalReservations = reservations.length;
-  const pendingCount = reservations.filter((item) => ['Pending', 'Submitted', 'In Review'].includes(item.status)).length;
+  const pendingCount = reservations.filter((item) => ['Pending', 'Submitted', 'In Review', 'Under Review'].includes(item.status)).length;
   const approvedCount = reservations.filter((item) => ['Approved', 'Confirmed'].includes(item.status)).length;
 
   return (
@@ -500,7 +555,21 @@ export default function Reservation() {
       {msg && <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{msg}</div>}
 
       {showForm && (
-        <form ref={formRef} onSubmit={handleSubmit} className="mb-6 overflow-hidden rounded-[30px] border border-[#e8dfd0] bg-white shadow-[0_22px_45px_rgba(15,31,45,0.08)]">
+        form.service_type === 'Funeral' ? (
+          <FuneralReservationForm
+            user={user}
+            onClose={() => setShowForm(false)}
+            onSubmitted={load}
+            onServiceChange={handleServiceChange}
+          />
+        ) : form.service_type === 'Private Mass' ? (
+          <PrivateMassReservationForm
+            user={user}
+            onClose={() => setShowForm(false)}
+            onSubmitted={load}
+            onServiceChange={handleServiceChange}
+          />
+        ) : <form ref={formRef} onSubmit={handleSubmit} className="mb-6 overflow-hidden rounded-[30px] border border-[#e8dfd0] bg-white shadow-[0_22px_45px_rgba(15,31,45,0.08)]">
           <div className="border-b border-slate-200 bg-slate-50 px-5 py-5 sm:px-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -515,10 +584,11 @@ export default function Reservation() {
 
           <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {SERVICE_STEPS.map((step, index) => (
+              {activeSteps.map((step, index) => (
                 <button
                   key={step.id}
                   type="button"
+                  disabled={index > currentStep}
                   onClick={() => goToStep(index)}
                   className={`min-w-[120px] rounded-xl border px-3 py-2 text-left transition ${
                     index === currentStep
@@ -561,14 +631,25 @@ export default function Reservation() {
                 </div>
               )}
 
-              {currentStep === 1 && (
+              {!isBaptismFlow && currentStep === 1 && (
                 <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
                   <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Personal Information</h3>
+                  <div className="mb-5 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm sm:grid-cols-2">
+                    <div><span className="block text-xs text-slate-500">Full Name</span><span className="font-medium text-slate-800">{user?.fullname || 'Not available'}</span></div>
+                    <div><span className="block text-xs text-slate-500">Email Address</span><span className="font-medium text-slate-800">{user?.email || 'Not available'}</span></div>
+                    <div><span className="block text-xs text-slate-500">Contact Number</span><span className="font-medium text-slate-800">{user?.phone || 'Not available'}</span></div>
+                    <div><span className="block text-xs text-slate-500">Address</span><span className="font-medium text-slate-800">{user?.address || 'Not available'}</span></div>
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {getRequiredServiceDetails().map((field) => (
                       <label key={field.key} className="block text-sm text-slate-700 sm:col-span-2">
                         <span className="mb-2 block font-medium text-slate-700">{field.label}</span>
-                        <input
+                        {field.key === 'prayer_intention' ? <textarea
+                          className="input-field min-h-[110px]"
+                          value={form.serviceDetails[field.key] || ''}
+                          onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, [field.key]: e.target.value } })}
+                          placeholder={field.label}
+                        /> : <input
                           type="text"
                           className="input-field"
                           value={form.serviceDetails[field.key] || ''}
@@ -582,14 +663,107 @@ export default function Reservation() {
                             })
                           }
                           placeholder={field.label}
-                        />
+                        />}
                       </label>
                     ))}
+                  </div>
+                  <br></br>
+                  <div>
+
+                      <p className="font-semibold text-[#0f2337]">Gcash account: 09673941188 J*** J***** R***</p><br></br>
+                      <p className="font-semibold text-[#0f2337]">Landbank account: 09673941188 J*** J***** R***</p>
+                  </div>
+                  {form.service_type === 'Mass Intention' && (
+                    <div className="mt-5 rounded-2xl border border-[#f2e4bb] bg-[#fffaf0] p-4 text-sm text-slate-700">
+                      <p className="font-semibold text-[#0f2337]">Mass Intention Fee: ₱100.00 per individual Mass Intention</p>
+                      <p className="mt-2">Please send ₱100.00 using the parish payment account and upload your receipt in Step 4.</p>
+                      <p className="mt-2 text-xs text-slate-600">GCash or bank payment details have not been configured. Please contact the parish office for the current account information.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isBaptismFlow && currentStep === 1 && (
+                <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
+                  <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Child Information</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="block text-sm text-slate-700">
+                      <span className="mb-2 block font-medium text-slate-700">First Name</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.child_first_name || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_first_name: e.target.value } })} placeholder="First Name" />
+                    </label>
+                    <label className="block text-sm text-slate-700">
+                      <span className="mb-2 block font-medium text-slate-700">Middle Name</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.child_middle_name || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_middle_name: e.target.value } })} placeholder="Middle Name" />
+                    </label>
+                    <label className="block text-sm text-slate-700 sm:col-span-2">
+                      <span className="mb-2 block font-medium text-slate-700">Last Name</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.child_last_name || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_last_name: e.target.value } })} placeholder="Last Name" />
+                    </label>
+                    <label className="block text-sm text-slate-700">
+                      <span className="mb-2 block font-medium text-slate-700">Date of Birth</span>
+                      <input type="date" className="input-field" value={form.serviceDetails.child_birthdate || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_birthdate: e.target.value } })} />
+                    </label>
+                    <label className="block text-sm text-slate-700">
+                      <span className="mb-2 block font-medium text-slate-700">Place of Birth</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.child_birth_place || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_birth_place: e.target.value } })} placeholder="Place of Birth" />
+                    </label>
+                    <label className="block text-sm text-slate-700">
+                      <span className="mb-2 block font-medium text-slate-700">Sex</span>
+                      <select className="input-field" value={form.serviceDetails.child_sex || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_sex: e.target.value } })}>
+                        <option value="">Select Sex</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </label>
+                    <label className="block text-sm text-slate-700 sm:col-span-2">
+                      <span className="mb-2 block font-medium text-slate-700">House / Street</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.child_address_street || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_address_street: e.target.value } })} placeholder="House / Street" />
+                    </label>
+                    <label className="block text-sm text-slate-700">
+                      <span className="mb-2 block font-medium text-slate-700">Barangay</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.child_address_barangay || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_address_barangay: e.target.value } })} placeholder="Barangay" />
+                    </label>
+                    <label className="block text-sm text-slate-700">
+                      <span className="mb-2 block font-medium text-slate-700">Municipality</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.child_address_municipality || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_address_municipality: e.target.value } })} placeholder="Municipality" />
+                    </label>
+                    <label className="block text-sm text-slate-700 sm:col-span-2">
+                      <span className="mb-2 block font-medium text-slate-700">Province</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.child_address_province || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, child_address_province: e.target.value } })} placeholder="Province" />
+                    </label>
                   </div>
                 </div>
               )}
 
-              {currentStep === 2 && (
+              {isBaptismFlow && currentStep === 2 && (
+                <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
+                  <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Parent / Sponsor Information</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="block text-sm text-slate-700 sm:col-span-2">
+                      <span className="mb-2 block font-medium text-slate-700">Father's Full Name</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.father_full_name || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, father_full_name: e.target.value } })} placeholder="Father's Full Name" />
+                    </label>
+                    <label className="block text-sm text-slate-700 sm:col-span-2">
+                      <span className="mb-2 block font-medium text-slate-700">Mother's Full Name</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.mother_full_name || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, mother_full_name: e.target.value } })} placeholder="Mother's Full Name" />
+                    </label>
+                    <label className="block text-sm text-slate-700 sm:col-span-2">
+                      <span className="mb-2 block font-medium text-slate-700">Contact Number</span>
+                      <input type="tel" className="input-field" value={form.serviceDetails.requester_contact_number || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, requester_contact_number: e.target.value } })} placeholder="Contact Number" />
+                    </label>
+                    <label className="block text-sm text-slate-700 sm:col-span-2">
+                      <span className="mb-2 block font-medium text-slate-700">Name of Ninong / Ninang</span>
+                      <input type="text" className="input-field" value={form.serviceDetails.sponsor_name || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, sponsor_name: e.target.value } })} placeholder="Ninong / Ninang Name" />
+                    </label>
+                    <label className="block text-sm text-slate-700 sm:col-span-2">
+                      <span className="mb-2 block font-medium text-slate-700">Ninong / Ninang Contact Number</span>
+                      <input type="tel" className="input-field" value={form.serviceDetails.sponsor_contact_number || ''} onChange={(e) => setForm({ ...form, serviceDetails: { ...form.serviceDetails, sponsor_contact_number: e.target.value } })} placeholder="Contact Number" />
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {(isBaptismFlow ? currentStep === 3 : currentStep === 2) && (
                 <>
                   <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
                     <div className="mb-3 flex items-center justify-between gap-3">
@@ -713,9 +887,14 @@ export default function Reservation() {
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="text-base">{formatSlotTime(slot.time)}</span>
                                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${isAvailable ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'}`}>
-                                    {isAvailable ? 'Available' : 'Full'}
+                                    {form.service_type === 'Mass Intention'
+                                      ? `${slot.reservation_count || 0}/15${isAvailable ? '' : ' — FULL'}`
+                                      : (isAvailable ? 'Available' : 'Full')}
                                   </span>
                                 </div>
+                                {form.service_type === 'Mass Intention' && isAvailable && (
+                                  <div className="mt-1 text-xs text-emerald-700">{slot.remaining} slot{slot.remaining === 1 ? '' : 's'} remaining</div>
+                                )}
                               </button>
                             );
                           })}
@@ -734,7 +913,7 @@ export default function Reservation() {
                 </>
               )}
 
-              {currentStep === 3 && (
+              {(isBaptismFlow ? currentStep === 4 : currentStep === 3) && (
                 <div className="space-y-5">
                   <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <div className="mb-3 flex items-center justify-between">
@@ -755,7 +934,7 @@ export default function Reservation() {
                 </div>
               )}
 
-              {currentStep === 4 && (
+              {(isBaptismFlow ? currentStep === 5 : currentStep === 4) && (
                 <div className="space-y-5">
                   <div className="rounded-[24px] border border-slate-200 bg-[#f8fafc] p-4 sm:p-5">
                     <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Review Reservation</h3>
@@ -764,6 +943,14 @@ export default function Reservation() {
                         <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Service</div>
                         <div className="mt-1 font-semibold text-[#0f2337]">{SERVICE_LABELS[form.service_type] || form.service_type}</div>
                       </div>
+                      {form.service_type === 'Mass Intention' && (
+                        <div className="rounded-xl border border-[#f2e4bb] bg-[#fffaf0] p-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Payment</div>
+                          <div className="mt-1 font-semibold text-[#0f2337]">Mass Intention Fee: ₱100.00</div>
+                          <div className="mt-1 text-sm text-slate-700">Payment method: GCash/Bank</div>
+                          <div className="mt-1 text-sm text-slate-700">Payment Receipt: {uploadedFiles.payment_receipt ? 'Uploaded' : 'Missing'}</div>
+                        </div>
+                      )}
                       <div className="rounded-xl border border-slate-200 bg-white p-3">
                         <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Date & Time</div>
                         <div className="mt-1 font-semibold text-[#0f2337]">
@@ -818,7 +1005,7 @@ export default function Reservation() {
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Progress</h3>
                     <span className="rounded-full bg-[#f5ead0] px-2 py-1 text-[10px] font-medium text-[#775b25]">
-                      {currentStep + 1}/{SERVICE_STEPS.length}
+                      {currentStep + 1}/{activeSteps.length}
                     </span>
                   </div>
                   <ul className="space-y-2 text-sm text-slate-700">
@@ -836,13 +1023,13 @@ export default function Reservation() {
                     Back
                   </button>
                 )}
-                {currentStep < SERVICE_STEPS.length - 1 ? (
+                {currentStep < activeSteps.length - 1 ? (
                   <button type="button" className="btn-primary flex-1" onClick={handleNextStep}>
                     Next
                   </button>
                 ) : (
                   <button type="submit" className="btn-primary flex-1" disabled={uploadingDocs}>
-                    {uploadingDocs ? 'Submitting...' : 'Submit Reservation'}
+                    {uploadingDocs ? 'Submitting...' : isBaptismFlow ? 'Submit Baptism Reservation' : 'Submit Reservation'}
                   </button>
                 )}
               </div>

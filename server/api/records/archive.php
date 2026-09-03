@@ -3,11 +3,28 @@
 require_once __DIR__ . '/../../config/init.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../utils/response.php';
+require_once __DIR__ . '/../../utils/upload.php';
 require_once __DIR__ . '/../../middleware/auth.php';
 
 requireAdmin();
 
 $db = getDB();
+
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    parse_str(file_get_contents('php://input'), $deleteParams);
+    $deleteReservationId = (int) ($_GET['reservation_id'] ?? $deleteParams['reservation_id'] ?? 0);
+    $deleteParishRecordId = (int) ($_GET['parish_record_id'] ?? $deleteParams['parish_record_id'] ?? 0);
+
+    if ($deleteReservationId > 0) {
+        deleteReservationRecord($db, $deleteReservationId);
+    }
+
+    if ($deleteParishRecordId > 0) {
+        deleteUnlinkedParishRecord($db, $deleteParishRecordId);
+    }
+
+    errorResponse('A valid reservation_id or parish_record_id is required.', 400);
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     errorResponse('Method not allowed.', 405);
@@ -41,7 +58,7 @@ function getReservationRecordList(PDO $db, string $q, string $service, string $s
 {
     $sql = 'SELECT r.id AS reservation_id, r.user_id, r.service_type, r.reservation_date,
                    r.reservation_time, r.status, r.created_at,
-                   u.fullname, u.email, u.phone, u.address, r.requirements
+                   u.fullname, u.email, u.phone, u.address, r.requirements, r.service_details
             FROM reservations r
             INNER JOIN users u ON r.user_id = u.id
             WHERE 1 = 1';
@@ -139,6 +156,7 @@ function getReservationRecordDetail(PDO $db, int $reservationId): array
             'reservation_date' => $reservation['reservation_date'],
             'reservation_time' => $reservation['reservation_time'],
             'requirements' => $reservation['requirements'],
+            'service_details' => $reservation['service_details'],
             'status' => $reservation['status'],
             'remarks' => $reservation['remarks'],
             'created_at' => $reservation['created_at'],
@@ -152,6 +170,10 @@ function getReservationRecordDetail(PDO $db, int $reservationId): array
 
 function reservationFolderName(array $reservation): string
 {
+    if (($reservation['service_type'] ?? '') === 'Funeral' && !empty($reservation['service_details'])) {
+        $details = json_decode((string) $reservation['service_details'], true);
+        if (is_array($details) && !empty($details['deceased_name'])) return (string) $details['deceased_name'];
+    }
     $details = (string) ($reservation['requirements'] ?? '');
     if (($reservation['service_type'] ?? '') === 'Marriage') {
         $bride = extractRequirementValue($details, 'Bride Name') ?: 'Bride';
@@ -431,7 +453,7 @@ function getParishionerRecordDetail(PDO $db, int $userId): array
     }
 
     $reservationsStmt = $db->prepare(
-        'SELECT id, service_type, reservation_date, reservation_time, requirements, status, remarks, created_at
+        'SELECT id, service_type, reservation_date, reservation_time, requirements, service_details, status, remarks, created_at
          FROM reservations
          WHERE user_id = ?
          ORDER BY created_at DESC'
@@ -520,4 +542,54 @@ function extractNameFromDetails(string $details): ?string
     }
 
     return null;
+}
+
+function deleteReservationRecord(PDO $db, int $reservationId): void
+{
+    $stmt = $db->prepare('SELECT id FROM reservations WHERE id = ? LIMIT 1');
+    $stmt->execute([$reservationId]);
+    if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+        errorResponse('Parishioner record not found.', 404);
+    }
+
+    $docStmt = $db->prepare('SELECT file_path FROM reservation_documents WHERE reservation_id = ?');
+    $docStmt->execute([$reservationId]);
+    $filePaths = array_column($docStmt->fetchAll(PDO::FETCH_ASSOC), 'file_path');
+
+    try {
+        $db->beginTransaction();
+        // reservation_documents rows cascade-delete via FK constraint
+        $db->prepare('DELETE FROM reservations WHERE id = ?')->execute([$reservationId]);
+        $db->commit();
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        errorResponse('Unable to delete record. Please try again.', 500);
+    }
+
+    $baseUploadDir = realpath(__DIR__ . '/../../uploads');
+    if ($baseUploadDir !== false) {
+        foreach ($filePaths as $filePath) {
+            deleteUploadedFile($filePath, $baseUploadDir);
+        }
+        $folder = $baseUploadDir . '/' . generateReservationFolder($reservationId);
+        if (is_dir($folder) && count(scandir($folder)) === 2) {
+            @rmdir($folder);
+        }
+    }
+
+    successResponse(null, 'Record deleted successfully.');
+}
+
+function deleteUnlinkedParishRecord(PDO $db, int $parishRecordId): void
+{
+    $stmt = $db->prepare('SELECT id FROM parish_records WHERE id = ? AND user_id IS NULL LIMIT 1');
+    $stmt->execute([$parishRecordId]);
+    if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+        errorResponse('Parishioner record not found.', 404);
+    }
+
+    $db->prepare('DELETE FROM parish_records WHERE id = ?')->execute([$parishRecordId]);
+    successResponse(null, 'Record deleted successfully.');
 }

@@ -3,12 +3,15 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import StatusBadge from '../../components/cards/StatusBadge';
 import LoadingSpinner from '../../components/forms/LoadingSpinner';
 import Modal from '../../components/forms/Modal';
+import ImagePreviewModal from '../../components/forms/ImagePreviewModal';
 import { SERVICE_TYPES, STATUSES } from '../../utils/constants';
 import {
   fetchReservationDocument,
   getRecordArchive,
   getReservationRecordDetail,
   getUnlinkedRecordDetail,
+  deleteReservationRecord,
+  deleteUnlinkedRecord,
 } from '../../services/api';
 
 function formatDate(value) {
@@ -271,39 +274,13 @@ function UploadedDocumentsSection({ documents = [] }) {
         )}
       </DetailSection>
 
-      {previewDoc && previewUrl && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50"
-          onClick={closePreview}
-        >
-          <div
-            className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center p-4 border-b">
-              <div className="min-w-0 pr-4">
-                <h3 className="font-semibold text-gray-800">{previewDoc.document_name}</h3>
-                <p className="text-xs text-gray-500 truncate">{previewDoc.original_filename}</p>
-              </div>
-              <button
-                type="button"
-                className="text-gray-400 hover:text-gray-600 shrink-0"
-                onClick={closePreview}
-                aria-label="Close preview"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-4">
-              <img
-                src={previewUrl}
-                alt={previewDoc.original_filename}
-                className="max-w-full h-auto mx-auto"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <ImagePreviewModal
+        isOpen={!!previewDoc && !!previewUrl}
+        src={previewUrl}
+        alt={previewDoc?.original_filename}
+        title={previewDoc?.document_name || 'Image Preview'}
+        onClose={closePreview}
+      />
     </>
   );
 }
@@ -477,6 +454,10 @@ export default function AdminRecords() {
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -495,6 +476,12 @@ export default function AdminRecords() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!successMessage) return undefined;
+    const timer = setTimeout(() => setSuccessMessage(''), 4000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -531,6 +518,42 @@ export default function AdminRecords() {
       setDetailError(formatApiError(err, 'Failed to load record details.'));
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const recordKey = (record) => record.reservation_id ?? `unlinked-${record.parish_record_id}`;
+
+  const openDeleteConfirm = (record) => {
+    setDeleteError('');
+    setDeleteTarget(record);
+  };
+
+  const closeDeleteConfirm = () => {
+    if (deleting) return;
+    setDeleteTarget(null);
+    setDeleteError('');
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      if (deleteTarget.is_unlinked) {
+        await deleteUnlinkedRecord(deleteTarget.parish_record_id);
+      } else {
+        await deleteReservationRecord(deleteTarget.reservation_id);
+      }
+      setRecords((prev) => prev.filter((r) => recordKey(r) !== recordKey(deleteTarget)));
+      if (viewRecord && recordKey(viewRecord) === recordKey(deleteTarget)) {
+        closeView();
+      }
+      setDeleteTarget(null);
+      setSuccessMessage('The parishioner record has been permanently deleted.');
+    } catch (err) {
+      setDeleteError(formatApiError(err, 'The record could not be deleted. Please try again.'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -676,6 +699,13 @@ export default function AdminRecords() {
         </div>
       </form>
 
+      {successMessage && (
+        <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+          <p className="text-sm font-semibold text-emerald-800">Record Deleted Successfully</p>
+          <p className="mt-1 text-sm text-emerald-700">{successMessage}</p>
+        </div>
+      )}
+
       {loading ? (
         <div className="card border border-slate-200 bg-slate-50">
           <LoadingSpinner />
@@ -719,7 +749,7 @@ export default function AdminRecords() {
                 ) : (
                   <div className="grid gap-4 p-5 lg:grid-cols-2">
                     {folderRecords.map((record) => (
-                      <article key={record.reservation_id ?? `unlinked-${record.parish_record_id}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-[#d7b57a] hover:shadow-md">
+                      <article key={recordKey(record)} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-[#d7b57a] hover:shadow-md">
                         <div className="flex items-start gap-3">
                           <span className="text-2xl" aria-hidden="true">📁</span>
                           <div className="min-w-0 flex-1">
@@ -731,7 +761,14 @@ export default function AdminRecords() {
                             </div>
                           </div>
                         </div>
-                        <div className="mt-4 flex justify-end">
+                        <div className="mt-4 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                            onClick={() => openDeleteConfirm(record)}
+                          >
+                            🗑 Delete
+                          </button>
                           <button
                             type="button"
                             className="inline-flex items-center rounded-lg bg-[#0f2337] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#18324c]"
@@ -777,6 +814,41 @@ export default function AdminRecords() {
         ) : detail ? (
           <RecordDetailsContent detail={detail} />
         ) : null}
+      </Modal>
+
+      <Modal isOpen={!!deleteTarget} onClose={closeDeleteConfirm} title="Delete Parishioner Record?" size="sm">
+        {deleteTarget && (
+          <div>
+            <p className="text-sm text-slate-600">
+              Are you sure you want to delete <span className="font-semibold text-[#0f2337]">{deleteTarget.fullname}</span>&apos;s record?
+              This action will remove the record and its associated documents. This action cannot be undone.
+            </p>
+            {deleteError && (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                <p className="text-sm font-semibold text-red-800">Unable to Delete Record</p>
+                <p className="mt-1 text-sm text-red-700">{deleteError}</p>
+              </div>
+            )}
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                onClick={closeDeleteConfirm}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Delete Record'}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </DashboardLayout>
   );

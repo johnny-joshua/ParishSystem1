@@ -26,6 +26,11 @@ html {
     overflow-x: hidden;
   }
 
+  body.mobile-drawer-open,
+  body.mobile-nav-open {
+    overflow: hidden;
+  }
+
   #root {
     width: 100%;
     max-width: 100%;

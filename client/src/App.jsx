@@ -20,6 +20,7 @@ import AdminRecords from './pages/admin/AdminRecords';
 import AdminUsers from './pages/admin/AdminUsers';
 import Reports from './pages/admin/Reports';
 import SMSLogs from './pages/admin/SMSLogs';
+import ParishCalendar from './pages/admin/ParishCalendar';
 
 export default function App() {
   return (
@@ -113,6 +114,14 @@ export default function App() {
         element={
           <AdminRoute>
             <AdminReservations />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/parish-calendar"
+        element={
+          <AdminRoute>
+            <ParishCalendar />
           </AdminRoute>
         }
       />

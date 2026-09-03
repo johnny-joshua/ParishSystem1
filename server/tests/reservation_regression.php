@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-$base = getenv('API_BASE') ?: 'http://localhost/parishSystem/server/api';
+$base = getenv('API_BASE') ?: 'http://localhost/ParishSystem1/server/api';
 $cookieFile = sys_get_temp_dir() . '/parish_regression_cookies.txt';
 @unlink($cookieFile);
 
@@ -61,7 +61,7 @@ function assertTrue(bool $cond, string $label, array &$results): void
 }
 
 $results = [];
-$testEmail = 'regression_test_' . time() . '@example.com';
+$testEmail = 'regression_test_' . time() . '@gmail.com';
 $testPassword = 'TestPass123!';
 
 echo "=== Reservation Module Regression ===\n";

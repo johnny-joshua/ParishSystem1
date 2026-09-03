@@ -251,7 +251,7 @@ function documentTypeExists(string $serviceType, string $documentType): bool
  */
 function getReservationDocumentSummary(PDO $db, int $reservationId, string $serviceType): array
 {
-    $requirements = getDocumentRequirements($serviceType);
+    $requirements = getReservationDocumentRequirements($db, $reservationId, $serviceType);
     $requiredTypes = array_filter($requirements, fn($doc) => $doc['required'] ?? false);
     $totalRequired = count($requiredTypes);
     
@@ -313,6 +313,26 @@ function getReservationDocumentSummary(PDO $db, int $reservationId, string $serv
         'complete' => ($verifiedCount === $totalRequired && $rejectedCount === 0 && $missingCount === 0),
         'missing_types' => array_values($missingTypes),
     ];
+}
+
+function getReservationDocumentRequirements(PDO $db, int $reservationId, string $serviceType): array
+{
+    $requirements = getDocumentRequirements($serviceType);
+    if ($serviceType !== 'Funeral') {
+        return $requirements;
+    }
+
+    $stmt = $db->prepare('SELECT service_details FROM reservations WHERE id = ? LIMIT 1');
+    $stmt->execute([$reservationId]);
+    $details = json_decode((string) ($stmt->fetchColumn() ?: ''), true);
+    $cemeteryType = is_array($details) ? (string) ($details['cemetery_type'] ?? '') : '';
+
+    return array_map(static function (array $requirement) use ($cemeteryType): array {
+        if ($requirement['type'] === 'authority_niche_form') {
+            $requirement['required'] = $cemeteryType !== 'Ossuary';
+        }
+        return $requirement;
+    }, $requirements);
 }
 
 /**

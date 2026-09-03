@@ -39,7 +39,7 @@ export const deleteUser = (id) => api.delete(`/auth/users.php?id=${id}`);
 
 export const getReservations = (status) =>
   api.get('/reservations/index.php', { params: status ? { status } : {} });
-export const createReservation = (data) => api.post('/reservations/index.php', data);
+export const createReservation = (data) => api.post('/reservations/index.php', data, data instanceof FormData ? { headers: { 'Content-Type': false } } : undefined);
 export const updateReservation = (data) => api.patch('/reservations/index.php', data);
 export const checkAvailability = (date, service_type) =>
   api.get('/reservations/availability.php', { params: { date, service_type } });
@@ -65,6 +65,7 @@ export const getDocumentRequirements = () =>
 
 export const getAppointments = (status) =>
   api.get('/appointments/index.php', { params: status ? { status } : {} });
+export const getParishCalendar = () => api.get('/calendar/index.php');
 export const createAppointment = (data) => api.post('/appointments/index.php', data);
 export const updateAppointment = (data) => api.patch('/appointments/index.php', data);
 export const checkAppointmentAvailability = (date) =>
@@ -83,6 +84,10 @@ export const getReservationRecordDetail = (reservationId) =>
   api.get('/records/archive.php', { params: { reservation_id: reservationId } });
 export const getUnlinkedRecordDetail = (parishRecordId) =>
   api.get('/records/archive.php', { params: { parish_record_id: parishRecordId } });
+export const deleteReservationRecord = (reservationId) =>
+  api.delete('/records/archive.php', { params: { reservation_id: reservationId } });
+export const deleteUnlinkedRecord = (parishRecordId) =>
+  api.delete('/records/archive.php', { params: { parish_record_id: parishRecordId } });
 export const downloadParishionerFiles = (userId) =>
   api.get('/records/download.php', { params: { user_id: userId }, responseType: 'blob' });
 

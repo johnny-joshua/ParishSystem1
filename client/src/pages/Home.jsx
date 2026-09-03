@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 import { CORE_FEATURE_CARDS, SERVICE_CARDS } from '../utils/constants';
@@ -7,6 +7,16 @@ import { CORE_FEATURE_CARDS, SERVICE_CARDS } from '../utils/constants';
 export default function Home() {
   const featuresScrollRef = useRef(null);
   const servicesScrollRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showRegisteredNotice, setShowRegisteredNotice] = useState(Boolean(location.state?.registered));
+
+  // Clear the navigation state so the notice doesn't reappear on refresh/back.
+  useEffect(() => {
+    if (location.state?.registered) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const scrollByDirection = (ref, direction) => {
     if (!ref.current) return;
@@ -41,6 +51,22 @@ export default function Home() {
   return (
     <div className="home-page min-h-screen flex flex-col bg-parish-cream">
       <Navbar />
+      {showRegisteredNotice && (
+        <div className="relative z-10 border-b border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
+          <p className="text-sm font-semibold text-emerald-800">Registration Successful</p>
+          <p className="text-sm text-emerald-700">
+            Your account has been created successfully. Please log in to continue.
+          </p>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800"
+            onClick={() => setShowRegisteredNotice(false)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <section id="home" className="hero-shell relative overflow-hidden text-white py-20 md:py-28">
         <div className="absolute inset-0 opacity-30" aria-hidden="true">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(215,181,122,0.22),transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.12),transparent_22%)]" />

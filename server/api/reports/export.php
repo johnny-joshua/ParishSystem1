@@ -178,7 +178,7 @@ switch ($category) {
             'summary' => [
                 'total_parishioners' => (int) $db->query("SELECT COUNT(*) FROM users WHERE role = 'user'")->fetchColumn(),
                 'total_users' => (int) $db->query("SELECT COUNT(*) FROM users")->fetchColumn(),
-                'pending_reservations' => (int) $db->query("SELECT COUNT(*) FROM reservations WHERE status = 'Pending'")->fetchColumn(),
+                'pending_reservations' => (int) $db->query("SELECT COUNT(*) FROM reservations WHERE status IN ('Pending', 'Under Review')")->fetchColumn(),
                 'approved_reservations' => (int) $db->query("SELECT COUNT(*) FROM reservations WHERE status = 'Approved'")->fetchColumn(),
                 'rejected_reservations' => (int) $db->query("SELECT COUNT(*) FROM reservations WHERE status = 'Rejected'")->fetchColumn(),
                 'completed_reservations' => (int) $db->query("SELECT COUNT(*) FROM reservations WHERE status = 'Completed'")->fetchColumn(),

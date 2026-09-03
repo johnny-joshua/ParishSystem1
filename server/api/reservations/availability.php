@@ -31,12 +31,17 @@ if ($month !== '') {
     }
     $monthEnd = $monthStart->modify('last day of this month');
 
-    $stmt = $db->prepare(
-        "SELECT reservation_date, reservation_time
-         FROM reservations
-         WHERE reservation_date BETWEEN ? AND ? AND status != 'Rejected'"
-    );
-    $stmt->execute([$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
+        $serviceFilter = $serviceType === 'Mass Intention' ? ' AND service_type = ?' : '';
+        $stmt = $db->prepare(
+                "SELECT reservation_date, reservation_time, COUNT(*) AS reservation_count
+                 FROM reservations
+                 WHERE reservation_date BETWEEN ? AND ?
+                     AND status IN ('Pending', 'Under Review', 'Approved'){$serviceFilter}
+                 GROUP BY reservation_date, reservation_time"
+        );
+        $params = [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')];
+        if ($serviceFilter !== '') $params[] = $serviceType;
+        $stmt->execute($params);
     $rows = $stmt->fetchAll();
 
     $bookedByDate = [];
@@ -46,14 +51,41 @@ if ($month !== '') {
         if (!isset($bookedByDate[$day])) {
             $bookedByDate[$day] = [];
         }
-        $bookedByDate[$day][] = $time;
+        $bookedByDate[$day][$time] = (int) $row['reservation_count'];
     }
 
     $dates = [];
     $cursor = $monthStart;
     while ($cursor <= $monthEnd) {
         $day = $cursor->format('Y-m-d');
-        $dates[$day] = reservationDateAvailability($serviceType, $day, $bookedByDate[$day] ?? []);
+        $allowed = allowedReservationSlots($serviceType, $day);
+        if (in_array($serviceType, ['Mass Intention', 'Funeral', 'Private Mass'], true)) {
+            $allowed = filterPastAppointmentSlots($day, $allowed);
+        }
+        if ($serviceType === 'Mass Intention') {
+            $fullCount = 0;
+            foreach ($allowed as $slot) {
+                if (($bookedByDate[$day][$slot] ?? 0) >= 15) $fullCount++;
+            }
+            $dates[$day] = [
+                'status' => $allowed === [] ? 'unavailable' : ($fullCount === count($allowed) ? 'full' : 'available'),
+                'available_count' => count($allowed) - $fullCount,
+                'total_slots' => count($allowed),
+            ];
+        } elseif ($serviceType === 'Baptism') {
+            $capacity = 20;
+            $fullCount = 0;
+            foreach ($allowed as $slot) {
+                if (($bookedByDate[$day][$slot] ?? 0) >= $capacity) $fullCount++;
+            }
+            $dates[$day] = [
+                'status' => $allowed === [] ? 'unavailable' : ($fullCount === count($allowed) ? 'full' : 'available'),
+                'available_count' => count($allowed) - $fullCount,
+                'total_slots' => count($allowed),
+            ];
+        } else {
+            $dates[$day] = reservationDateAvailability($serviceType, $day, array_keys($bookedByDate[$day] ?? []));
+        }
         $cursor = $cursor->modify('+1 day');
     }
 
@@ -71,6 +103,10 @@ if (!$date || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
 
 $allowedSlots = allowedReservationSlots($serviceType, $date);
 
+if (in_array($serviceType, ['Mass Intention', 'Funeral', 'Private Mass'], true)) {
+    $allowedSlots = filterPastAppointmentSlots($date, $allowedSlots);
+}
+
 if (empty($allowedSlots)) {
     successResponse([
         'date' => $date,
@@ -81,21 +117,33 @@ if (empty($allowedSlots)) {
     ]);
 }
 
+$serviceFilter = $serviceType === 'Mass Intention' ? ' AND service_type = ?' : '';
 $stmt = $db->prepare(
-    "SELECT reservation_time FROM reservations WHERE reservation_date = ? AND status != 'Rejected'"
+    "SELECT reservation_time, COUNT(*) AS reservation_count
+     FROM reservations
+     WHERE reservation_date = ? AND status IN ('Pending', 'Under Review', 'Approved'){$serviceFilter}
+     GROUP BY reservation_time"
 );
-$stmt->execute([$date]);
-$bookedAll = array_column($stmt->fetchAll(), 'reservation_time');
+$params = [$date];
+if ($serviceFilter !== '') $params[] = $serviceType;
+$stmt->execute($params);
+$counts = [];
+foreach ($stmt->fetchAll() as $row) $counts[(string) $row['reservation_time']] = (int) $row['reservation_count'];
 
-$booked = array_values(array_intersect($allowedSlots, $bookedAll));
-$available = array_values(array_diff($allowedSlots, $booked));
-
-$slots = array_map(function ($t) use ($booked) {
+$capacity = $serviceType === 'Mass Intention' ? 15 : ($serviceType === 'Baptism' ? 20 : 1);
+$available = array_values(array_filter($allowedSlots, fn ($time) => ($counts[$time] ?? 0) < $capacity));
+$slots = array_map(function ($time) use ($counts, $capacity) {
+    $count = $counts[$time] ?? 0;
     return [
-        'time' => $t,
-        'status' => in_array($t, $booked, true) ? 'full' : 'available',
+        'time' => $time,
+        'status' => $count >= $capacity ? 'full' : 'available',
+        'reservation_count' => $count,
+        'capacity' => $capacity,
+        'remaining' => max(0, $capacity - $count),
     ];
 }, $allowedSlots);
+
+$booked = array_values(array_filter($allowedSlots, fn ($time) => ($counts[$time] ?? 0) >= $capacity));
 
 successResponse([
     'date' => $date,

@@ -118,7 +118,7 @@ function allowedReservationSlots(string $serviceType, string $date): array
     $t1400 = '14:00:00';
 
     if ($serviceType === 'Baptism') {
-        // Wednesday and Saturday only - 10am only
+        // Wednesday and Saturday only - 10:00 AM only
         return ($isWednesday || $isSaturday) ? [$t1000] : [];
     }
 
@@ -131,14 +131,11 @@ function allowedReservationSlots(string $serviceType, string $date): array
     }
 
     if ($serviceType === 'Private Mass') {
-        // Reserve at least 1 week before schedule; single venue (Mon/Wed–Sat, 9am & 2pm)
-        if (!isAtLeastDaysAhead($date, 7)) {
-            return [];
-        }
+        // Private Mass: Monday and Wednesday-Saturday, 8am-12pm or 1pm-4pm.
         if ($isTuesday || $isSunday) {
             return [];
         }
-        return [$t0900, $t1400];
+        return ['08:00:00', '13:00:00'];
     }
 
     if ($serviceType === 'Mass Intention') {

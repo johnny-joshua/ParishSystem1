@@ -83,7 +83,7 @@ export const SERVICE_SCHEDULE = {
   Baptism: 'Wednesday and Saturday only — 10:00 AM only',
   Marriage: 'Except Tuesday and Sunday — 9:00 AM and 2:00 PM only',
   Funeral: 'Except Tuesday and Sunday — 9:00 AM and 2:00 PM only',
-  'Private Mass': 'Reserve at least 1 week before the mass schedule (Mon, Wed–Sat at 9:00 AM & 2:00 PM)',
+  'Private Mass': 'Monday and Wednesday-Saturday, 8:00 AM-12:00 PM or 1:00 PM-4:00 PM',
   'Mass Intention':
     'Monday 6:00 AM; Tuesday closed; Wednesday 6:00 AM; Thursday 6:00 AM; Friday 6:00 AM; Saturday 6:00 AM; Sunday 6:00 AM and 8:00 AM',
 };
@@ -92,11 +92,11 @@ export const SERVICE_REQUIREMENTS = {
   Marriage: 'Marriage License, Baptismal Certificate, Confirmation Certificate, Pre-Cana Seminar Certificate',
   Funeral: 'Death Certificate, Baptismal Certificate of deceased, Family contact information',
   Baptism: 'Birth Certificate, Parents Marriage Certificate, Godparents Confirmation Certificates',
-  'Mass Intention': 'Name of intention, Offering amount (optional)',
+  'Mass Intention': 'Payment receipt / proof of payment',
   'Private Mass': 'Purpose of Mass, Expected attendees, Preferred priest (if any)',
 };
 
-export const STATUSES = ['Pending', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
+export const STATUSES = ['Pending', 'Under Review', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
 
 export const PARISH_LOCATION = {
   name: 'Holy Family Parish',
