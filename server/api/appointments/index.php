@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $phoneStmt->execute([(int) $auth['user_id']]);
         $userPhone = (string) ($phoneStmt->fetchColumn() ?: '');
         if ($userPhone) {
-            $smsMessage = "Your appointment request has been received and is pending approval.";
+            $smsMessage = "Holy Family Parish: Your appointment request for {$date} at {$time} has been received and is under review.";
             sendSMS($db, (int) $auth['user_id'], $userPhone, $smsMessage);
         }
     }
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
         errorResponse('A rejection reason is required.', 422, ['remarks' => 'Please provide a reason for rejecting this appointment.']);
     }
 
-    $stmt = $db->prepare('SELECT id, user_id, status, remarks FROM appointments WHERE id = ?');
+    $stmt = $db->prepare('SELECT id, user_id, status, remarks, appointment_date, appointment_time, purpose FROM appointments WHERE id = ?');
     $stmt->execute([$id]);
     $existing = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$existing) {
@@ -248,11 +248,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
             $appointment = $smsStmt->fetch(PDO::FETCH_ASSOC);
 
             if ($appointment && $appointment['phone']) {
+                $apptDate = (string) $existing['appointment_date'];
+                $apptTime = (string) $existing['appointment_time'];
                 $smsMessages = [
-                    'Approved' => 'Your appointment has been approved.',
-                    'Rejected' => 'Your appointment request has been rejected.',
-                    'Cancelled' => 'Your appointment has been cancelled.',
-                    'Completed' => 'Your appointment has been marked completed.',
+                    'Approved' => "Holy Family Parish: Your appointment for {$apptDate} at {$apptTime} has been approved.",
+                    'Rejected' => "Holy Family Parish: Your appointment for {$apptDate} at {$apptTime} has been rejected." . ($remarksValue ? " Reason: {$remarksValue}." : ''),
+                    'Cancelled' => "Holy Family Parish: Your appointment for {$apptDate} at {$apptTime} has been cancelled.",
+                    'Completed' => "Holy Family Parish: Your appointment for {$apptDate} at {$apptTime} has been marked completed.",
                 ];
 
                 if (isset($smsMessages[$status])) {

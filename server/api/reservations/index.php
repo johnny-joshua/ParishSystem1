@@ -274,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phoneStmt->execute([(int) $auth['user_id']]);
     $userPhone = (string) ($phoneStmt->fetchColumn() ?: '');
     if ($userPhone) {
-        $smsMessage = "Your reservation request has been received and is pending approval.";
+        $smsMessage = "Holy Family Parish: Your {$data['service_type']} reservation request for {$date} has been received and is under review.";
         sendSMS($db, (int) $auth['user_id'], $userPhone, $smsMessage);
     }
 
@@ -297,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
         errorResponse('A rejection reason is required.', 422, ['remarks' => 'Please provide a rejection reason.']);
     }
 
-    $stmt = $db->prepare('SELECT id, service_type, status FROM reservations WHERE id = ?');
+    $stmt = $db->prepare('SELECT id, service_type, status, reservation_date, reservation_time, intention_name FROM reservations WHERE id = ?');
     $stmt->execute([$id]);
     $reservation = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -341,10 +341,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
         $reservationUser = $smsStmt->fetch(PDO::FETCH_ASSOC);
 
         if ($reservationUser && $reservationUser['phone']) {
-            $smsMessages = [
-                'Approved' => 'Your reservation has been approved.',
-                'Rejected' => 'Your reservation request has been rejected.',
-            ];
+            $serviceLabel = (string) $reservation['service_type'];
+            $resDate = (string) $reservation['reservation_date'];
+            $resTime = (string) $reservation['reservation_time'];
+
+            if ($serviceLabel === 'Mass Intention') {
+                // Mass Intention uses its own dedicated wording, not the generic reservation message.
+                $massIntentionLabel = (string) ($reservation['intention_name'] ?: 'Mass Intention');
+                $smsMessages = [
+                    'Approved' => "Holy Family Parish: Your Mass Intention reservation has been approved for {$resDate} at {$resTime}. Reservation ID: {$id}. Thank you.",
+                    'Rejected' => "Holy Family Parish: Your Mass Intention reservation has been rejected." . ($remarks !== '' ? " Reason: {$remarks}." : '') . " Reservation ID: {$id}.",
+                ];
+            } else {
+                $smsMessages = [
+                    'Approved' => "Holy Family Parish: Your {$serviceLabel} reservation has been approved for {$resDate} at {$resTime}. Reservation ID: {$id}. Please visit the Parish Office to process your payments. Kindly bring sufficient cash for any applicable fees. Thank you.",
+                    'Rejected' => "Holy Family Parish: Your {$serviceLabel} reservation has been rejected." . ($remarks !== '' ? " Reason: {$remarks}." : '') . " Reservation ID: {$id}.",
+                ];
+            }
 
             if (isset($smsMessages[$status])) {
                 sendSMS($db, (int) $reservationUser['user_id'], $reservationUser['phone'], $smsMessages[$status]);

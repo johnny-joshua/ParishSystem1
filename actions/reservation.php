@@ -84,21 +84,29 @@ if ($action === 'update_status') {
         redirect(appUrl('admin/reservations.php'));
     }
 
+    $previousStmt = $db->prepare('SELECT status FROM reservations WHERE id = ?');
+    $previousStmt->execute([$id]);
+    $previousStatus = (string) $previousStmt->fetchColumn();
+    $statusChanged = $status !== $previousStatus;
+
     $stmt = $db->prepare('UPDATE reservations SET status = ?, remarks = ? WHERE id = ?');
     $stmt->execute([$status, $remarks ?: null, $id]);
 
-    notifyReservationStatusChange($db, $id, $status);
+    // Notification/SMS only on a real status transition, to match the API endpoint's dedup behavior.
+    if ($statusChanged) {
+        notifyReservationStatusChange($db, $id, $status);
 
-    $smsStmt = $db->prepare('SELECT user_id, phone FROM reservations r JOIN users u ON r.user_id = u.id WHERE r.id = ?');
-    $smsStmt->execute([$id]);
-    $reservation = $smsStmt->fetch(PDO::FETCH_ASSOC);
-    if ($reservation && $reservation['phone']) {
-        $smsMessages = [
-            'Approved' => 'Your reservation has been approved.',
-            'Rejected' => 'Your reservation request has been rejected.',
-        ];
-        if (isset($smsMessages[$status])) {
-            sendSMS($db, (int) $reservation['user_id'], $reservation['phone'], $smsMessages[$status]);
+        $smsStmt = $db->prepare('SELECT user_id, phone FROM reservations r JOIN users u ON r.user_id = u.id WHERE r.id = ?');
+        $smsStmt->execute([$id]);
+        $reservation = $smsStmt->fetch(PDO::FETCH_ASSOC);
+        if ($reservation && $reservation['phone']) {
+            $smsMessages = [
+                'Approved' => 'Your reservation has been approved.',
+                'Rejected' => 'Your reservation request has been rejected.',
+            ];
+            if (isset($smsMessages[$status])) {
+                sendSMS($db, (int) $reservation['user_id'], $reservation['phone'], $smsMessages[$status]);
+            }
         }
     }
 

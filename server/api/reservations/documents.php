@@ -206,23 +206,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
         $updateStmt->execute([$status, $remarks ?: null, $documentId]);
         
         $db->commit();
-        
-        $docUserId = (int) $document['reservation_user_id'];
-        
-        if ($status === 'Verified') {
-            $smsMessage = "Your document ({$document['document_name']}) has been verified.";
-        } else {
-            $smsMessage = "Your document ({$document['document_name']}) was rejected. Please re-upload. Remarks: {$remarks}";
-        }
 
-        // SMS only when document status actually changes
-        if ($statusChanged) {
-            $userPhone = (string) ($document['phone'] ?? '');
-            if ($userPhone !== '') {
-                sendSMS($db, $docUserId, $userPhone, $smsMessage);
-            }
-        }
-        
+        // Document verification/rejection is a sub-step of the reservation, not a
+        // standalone reservation event — it must never trigger an SMS.
+
         successResponse(null, "Document {$status}.");
         
     } catch (Exception $e) {
