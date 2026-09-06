@@ -4,7 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import StatCard from '../../components/cards/StatCard';
 import LoadingSpinner from '../../components/forms/LoadingSpinner';
 import { STATUSES, SERVICE_TYPES } from '../../utils/constants';
-import { getReportsSummary, exportReports } from '../../services/api';
+import { getReportsSummary, getReportsRecords, exportReports } from '../../services/api';
 
 const COLORS = ['#1a2744', '#c9a227', '#243556', '#22c55e', '#ef4444', '#3b82f6'];
 
@@ -22,6 +22,7 @@ export default function Reports() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [reportCategory, setReportCategory] = useState('all');
+  const [recordsChart, setRecordsChart] = useState([]);
 
   useEffect(() => {
     loadReports();
@@ -43,8 +44,12 @@ export default function Reports() {
         search: searchTerm || undefined,
       };
 
-      const response = await getReportsSummary(params);
-      setData(response.data);
+      const [summaryResponse, recordsResponse] = await Promise.all([
+        getReportsSummary(params),
+        getReportsRecords(params),
+      ]);
+      setData(summaryResponse.data);
+      setRecordsChart(recordsResponse.data?.records_chart || []);
     } catch (err) {
       setError(err.message || 'Failed to load reports');
     } finally {
@@ -105,53 +110,37 @@ export default function Reports() {
   }
 
   const { summary = {}, reservations_chart = [], appointments_chart = [], users_by_role = [], reservation_status = [], appointment_status = [], service_breakdown = [] } = data || {};
+  const recordsOverview = reservations_chart.map((reservation) => {
+    const appointment = appointments_chart.find((item) => item.month === reservation.month);
+    const record = recordsChart.find((item) => item.month === reservation.month);
+    return { month: reservation.month, reservations: reservation.count || 0, appointments: appointment?.count || 0, records: record?.count || 0 };
+  });
 
   return (
     <DashboardLayout>
-      <div className="mb-6 rounded-[28px] bg-gradient-to-r from-[#0f2337] via-[#12314b] to-[#1d4563] p-6 text-white shadow-[0_24px_50px_rgba(15,31,45,0.18)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7b57a]">Analytics</p>
-            <h1 className="font-display text-3xl text-white">Reports</h1>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => handleExport('csv')} className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-white/10">
-              Export CSV
-            </button>
-            <button onClick={() => handleExport('excel')} className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-white/10">
-              Export Excel
-            </button>
-            <button onClick={() => handleExport('pdf')} className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-white/10">
-              Export PDF
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="card mb-6 border border-slate-200 bg-slate-50/60 p-5">
+      <div className="mb-6 rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">From Date</label>
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">From Date</label>
             <input
               type="date"
-              className="input-field"
+              className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a] outline-none focus:border-[#b18a45] focus:ring-2 focus:ring-[#d7b57a]/20"
               value={dateRange.from}
               onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">To Date</label>
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">To Date</label>
             <input
               type="date"
-              className="input-field"
+              className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a] outline-none focus:border-[#b18a45] focus:ring-2 focus:ring-[#d7b57a]/20"
               value={dateRange.to}
               onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Period</label>
-            <select className="input-field" value={period} onChange={(e) => setPeriod(e.target.value)}>
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Period</label>
+            <select className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a]" value={period} onChange={(e) => setPeriod(e.target.value)}>
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
@@ -160,16 +149,16 @@ export default function Reports() {
             </select>
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Year</label>
-            <select className="input-field" value={year} onChange={(e) => setYear(parseInt(e.target.value))}>
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Year</label>
+            <select className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a]" value={year} onChange={(e) => setYear(parseInt(e.target.value))}>
               {[2023, 2024, 2025, 2026].map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Month</label>
-            <select className="input-field" value={month} onChange={(e) => setMonth(parseInt(e.target.value))}>
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Month</label>
+            <select className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a]" value={month} onChange={(e) => setMonth(parseInt(e.target.value))}>
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
                   {new Date(2025, i).toLocaleString('default', { month: 'long' })}
@@ -178,8 +167,8 @@ export default function Reports() {
             </select>
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Status</label>
-            <select className="input-field" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Status</label>
+            <select className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a]" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
               <option value="all">All Statuses</option>
               {STATUSES.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -190,8 +179,8 @@ export default function Reports() {
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Report Category</label>
-            <select className="input-field" value={reportCategory} onChange={(e) => setReportCategory(e.target.value)}>
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Report Category</label>
+            <select className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a]" value={reportCategory} onChange={(e) => setReportCategory(e.target.value)}>
               <option value="all">All Categories</option>
               <option value="reservations">Reservations</option>
               <option value="appointments">Appointments</option>
@@ -201,10 +190,10 @@ export default function Reports() {
             </select>
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Search</label>
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Search</label>
             <input
               type="text"
-              className="input-field"
+              className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a] outline-none focus:border-[#b18a45] focus:ring-2 focus:ring-[#d7b57a]/20"
               placeholder="Search reports..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -213,7 +202,7 @@ export default function Reports() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <button onClick={loadReports} className="btn-primary">Apply Filters</button>
+          <button onClick={loadReports} className="rounded-full bg-[#b18a45] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#967338]">Apply Filters</button>
           <button
             onClick={() => {
               setDateRange({ from: '', to: '' });
@@ -225,7 +214,7 @@ export default function Reports() {
               setStatusFilter('all');
               setReportCategory('all');
             }}
-            className="btn-secondary"
+            className="rounded-full border border-[#d7b57a] bg-white px-5 py-2.5 text-xs font-semibold text-[#a6813f] transition hover:bg-[#f5ead5]"
           >
             Reset Filters
           </button>
@@ -251,6 +240,11 @@ export default function Reports() {
       </div>
 
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-5 shadow-sm lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between"><h2 className="font-display text-lg text-[#273746]">Records Overview</h2><div className="flex flex-wrap gap-3 text-[10px] text-[#6e7274]"><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#b18a45]" />Reservations</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#5e9b70]" />Appointments</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#6d8fb5]" />Records</span></div></div>
+          <ResponsiveContainer width="100%" height={300}><BarChart data={recordsOverview} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid stroke="#eee7db" vertical={false} /><XAxis dataKey="month" tick={{ fontSize: 10, fill: '#8a857a' }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#8a857a' }} axisLine={false} tickLine={false} /><Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e7dfd2', fontSize: 12 }} /><Bar dataKey="reservations" name="Reservations" fill="#b18a45" radius={[3, 3, 0, 0]} /><Bar dataKey="appointments" name="Appointments" fill="#5e9b70" radius={[3, 3, 0, 0]} /><Bar dataKey="records" name="Records" fill="#6d8fb5" radius={[3, 3, 0, 0]} /></BarChart></ResponsiveContainer>
+        </div>
+
         <div className="card border border-slate-200 bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-[#0f2337]">Reservations Per Month</h2>

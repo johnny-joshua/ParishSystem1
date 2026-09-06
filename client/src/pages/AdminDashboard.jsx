@@ -1,101 +1,30 @@
 import { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Link } from 'react-router-dom';
+import { Area, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import StatCard from '../components/cards/StatCard';
 import LoadingSpinner from '../components/forms/LoadingSpinner';
 import { getDashboardStats } from '../services/api';
+import { PARISH_LOCATION, SERVICE_COLORS } from '../utils/constants';
 
-const COLORS = ['#1a2744', '#c9a227', '#243556', '#22c55e', '#ef4444'];
+function Stat({ label, value, detail, icon }) {
+  return <article className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]"><div className="flex items-start justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f5ead5] text-[#b18a45]">{icon}</span><span className="text-[10px] text-[#b1a897]">Overview</span></div><p className="mt-4 text-xs text-[#6e7274]">{label}</p><p className="mt-1 font-display text-3xl text-[#1f3342]">{value ?? 0}</p><p className="mt-1 text-[10px] text-[#999287]">{detail}</p></article>;
+}
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  useEffect(() => { getDashboardStats().then((response) => setData(response.data)).finally(() => setLoading(false)); }, []);
+  if (loading) return <DashboardLayout><LoadingSpinner /></DashboardLayout>;
+  const { stats = {}, monthly_chart = [], service_breakdown = [] } = data || {};
+  const totalServices = service_breakdown.reduce((sum, item) => sum + Number(item.count || 0), 0);
 
-  useEffect(() => {
-    getDashboardStats()
-      .then((r) => setData(r.data))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <LoadingSpinner />
-      </DashboardLayout>
-    );
-  }
-
-  const { stats, monthly_chart, service_breakdown } = data;
-
-  return (
-    <DashboardLayout>
-      <div className="mb-8 rounded-[28px] bg-gradient-to-r from-[#0f2337] via-[#12314b] to-[#1d4563] p-6 text-white shadow-[0_24px_50px_rgba(15,31,45,0.18)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7b57a]">Overview</p>
-            <h1 className="font-display text-3xl text-white">Admin Dashboard</h1>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-300">Operations</p>
-            <p className="mt-1 text-sm font-medium text-white">Parish management summary</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Parishioners" value={stats.total_users} icon="👥" />
-        <StatCard title="Pending Reservations" value={stats.pending_reservations} icon="⏳" color="gold" />
-        <StatCard title="Pending Appointments" value={stats.pending_appointments} icon="📅" color="gold" />
-        <StatCard title="Parish Records" value={stats.total_records} icon="📁" color="green" />
-        <StatCard title="Approved Reservations" value={stats.approved_reservations} icon="✅" color="green" />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="card overflow-hidden border border-slate-200 bg-white p-0">
-          <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-            <h2 className="text-base font-semibold text-[#0f2337]">Monthly Reservations</h2>
-          </div>
-          <div className="p-5">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={monthly_chart || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }} />
-                <Bar dataKey="count" fill="#0f2337" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="card overflow-hidden border border-slate-200 bg-white p-0">
-          <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-            <h2 className="text-base font-semibold text-[#0f2337]">By Service Type</h2>
-          </div>
-          <div className="p-5">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={service_breakdown || []}
-                  dataKey="count"
-                  nameKey="service_type"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={45}
-                  outerRadius={80}
-                  paddingAngle={4}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {(service_breakdown || []).map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    </DashboardLayout>
-  );
+  return <DashboardLayout><div className="min-h-full bg-[#faf8f1]">
+    <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Stat label="Pending Reservations" value={stats.pending_reservations} detail="Requires your attention" icon="▣" /><Stat label="Pending Appointments" value={stats.pending_appointments} detail="Requires your attention" icon="◷" /><Stat label="Parish Records" value={stats.total_records} detail="Total records" icon="□" /><Stat label="Total Users" value={stats.total_users} detail="Registered users" icon="♧" /></section>
+    <section className="grid gap-5 xl:grid-cols-[1.2fr_0.95fr_0.62fr]">
+      <article className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-5 shadow-[0_8px_22px_rgba(83,65,34,0.06)]"><div className="flex items-center justify-between"><h2 className="font-display text-lg text-[#273746]">Monthly Reservations</h2><span className="rounded-lg border border-[#e7dfd2] px-3 py-1 text-[10px] text-[#7a7d7f]">This year</span></div><div className="mt-5 h-64"><ResponsiveContainer width="100%" height="100%"><LineChart data={monthly_chart} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><defs><linearGradient id="reservationFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d7b57a" stopOpacity={0.38} /><stop offset="100%" stopColor="#d7b57a" stopOpacity={0.04} /></linearGradient></defs><CartesianGrid stroke="#eee7db" vertical={false} /><XAxis dataKey="month" tick={{ fontSize: 10, fill: '#8a857a' }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#8a857a' }} axisLine={false} tickLine={false} /><Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e7dfd2', fontSize: 12 }} /><Area type="monotone" dataKey="count" stroke="none" fill="url(#reservationFill)" /><Line type="monotone" dataKey="count" stroke="#b18a45" strokeWidth={2.5} dot={{ r: 3, fill: '#b18a45', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#b18a45' }} /></LineChart></ResponsiveContainer></div></article>
+      <article className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-5 shadow-[0_8px_22px_rgba(83,65,34,0.06)]"><h2 className="font-display text-lg text-[#273746]">By Service Type</h2><div className="mt-2 grid items-center gap-1 sm:grid-cols-[1.05fr_0.95fr]"><div className="relative h-56"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={service_breakdown} dataKey="count" nameKey="service_type" cx="50%" cy="50%" innerRadius={48} outerRadius={78} paddingAngle={2} stroke="none">{service_breakdown.map((item, index) => <Cell key={item.service_type || index} fill={SERVICE_COLORS[item.service_type] || '#b1a897'} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer><div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><span className="text-[10px] text-[#7a7d7f]">Total</span><span className="font-display text-xl text-[#1f3342]">{totalServices}</span></div></div><div className="space-y-2">{service_breakdown.map((item) => <div key={item.service_type} className="flex items-center justify-between gap-2 text-[10px] text-[#6e7274]"><span className="flex min-w-0 items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: SERVICE_COLORS[item.service_type] || '#b1a897' }} /><span className="truncate">{item.service_type}</span></span><span className="shrink-0 font-medium">{totalServices ? `${Math.round((Number(item.count || 0) / totalServices) * 100)}%` : '0%'}</span></div>)}</div></div></article>
+      <article className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-5 shadow-[0_8px_22px_rgba(83,65,34,0.06)]"><h2 className="font-display text-lg text-[#273746]">Quick Actions</h2><div className="mt-3 space-y-2"><Link to="/admin/reservations" className="block rounded-lg border border-[#eee5d6] px-3 py-3 text-xs text-[#4e555a] hover:bg-[#faf5e9]">▣ &nbsp; Add Reservation　›</Link><Link to="/admin/appointments" className="block rounded-lg border border-[#eee5d6] px-3 py-3 text-xs text-[#4e555a] hover:bg-[#faf5e9]">◷ &nbsp; Add Appointment　›</Link><Link to="/admin/users" className="block rounded-lg border border-[#eee5d6] px-3 py-3 text-xs text-[#4e555a] hover:bg-[#faf5e9]">♧ &nbsp; Add User　›</Link><Link to="/admin/records" className="block rounded-lg border border-[#eee5d6] px-3 py-3 text-xs text-[#4e555a] hover:bg-[#faf5e9]">□ &nbsp; View Records　›</Link></div></article>
+    </section>
+    <section className="mt-5 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]"><article className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-5 shadow-sm"><h2 className="font-display text-lg text-[#273746]">Parish Overview</h2><div className="mt-4 grid gap-3 sm:grid-cols-3"><div className="rounded-lg bg-[#faf5e9] p-4"><p className="text-[10px] uppercase text-[#b18a45]">Approved reservations</p><p className="mt-2 font-display text-2xl text-[#1f3342]">{stats.approved_reservations ?? 0}</p></div><div className="rounded-lg bg-[#faf5e9] p-4"><p className="text-[10px] uppercase text-[#b18a45]">Service requests</p><p className="mt-2 font-display text-2xl text-[#1f3342]">{totalServices}</p></div><div className="rounded-lg bg-[#faf5e9] p-4"><p className="text-[10px] uppercase text-[#b18a45]">Registered users</p><p className="mt-2 font-display text-2xl text-[#1f3342]">{stats.total_users ?? 0}</p></div></div></article><article className="overflow-hidden rounded-xl border border-[#e7dfd2] bg-[#fffdf8] shadow-sm"><div className="h-28 bg-[#e9dfcd]"><img src="/parish.jpg" alt="Holy Family Parish" className="h-full w-full object-cover" /></div><div className="p-4"><h2 className="font-display text-lg text-[#273746]">{PARISH_LOCATION.name}</h2><p className="mt-1 text-[11px] text-[#7a7d7f]">{PARISH_LOCATION.address}</p><Link to="/admin/parish-calendar" className="mt-3 inline-flex text-[10px] font-semibold text-[#a6813f]">View Parish Calendar →</Link></div></article></section>
+  </div></DashboardLayout>;
 }

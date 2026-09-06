@@ -120,7 +120,7 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
 
   return (
     <>
-      <nav className={`fixed inset-x-0 top-0 z-50 border-b backdrop-blur-xl ${user ? 'border-white/10 bg-[#0f2337]/95 text-white shadow-[0_12px_28px_rgba(6,14,22,0.14)]' : 'border-[#e8dfd0] bg-[#fffdf8]/95 text-[#273746] shadow-[0_8px_24px_rgba(83,65,34,0.08)]'} ${dashboard ? '2xl:left-64' : ''}`}>
+      <nav className={`${dashboard && user ? 'admin-dashboard-nav' : ''} fixed inset-x-0 top-0 z-50 border-b backdrop-blur-xl ${user ? 'border-white/10 bg-[#0f2337]/95 text-white shadow-[0_12px_28px_rgba(6,14,22,0.14)]' : 'border-[#e8dfd0] bg-[#fffdf8]/95 text-[#273746] shadow-[0_8px_24px_rgba(83,65,34,0.08)]'} ${dashboard ? 'xl:left-64' : ''}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-2 sm:gap-5 h-16 sm:h-20">
           {!user && (
@@ -142,7 +142,7 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
                 aria-label={isSidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
                 aria-expanded={isSidebarOpen}
                 onClick={onSidebarToggle}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-lg text-white transition hover:bg-white/15 2xl:hidden"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-lg text-white transition hover:bg-white/15 xl:hidden"
               >
                 {isSidebarOpen ? '×' : '☰'}
               </button>
@@ -221,6 +221,13 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
 
           <div className="flex items-center justify-end gap-2 sm:gap-3 min-w-0">
             {user ? (
+              <>
+                {isAdmin && (
+                  <Link to="/notifications" aria-label="Notifications" className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-[#58616a] transition hover:bg-[#f1e7d1] hover:text-[#a6813f]">
+                    <IconNotifications className="h-[19px] w-[19px]" />
+                    {unreadCount > 0 && <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+                  </Link>
+                )}
               <div className="relative" ref={profileRef}>
                 <button
                   type="button"
@@ -237,11 +244,6 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
                   }`}
                 >
                   <span className="leading-none">{initials}</span>
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[1.1rem] h-[1.1rem] px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-parish-blue">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
                 </button>
 
                 {profileOpen && (
@@ -249,25 +251,25 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
                     role="menu"
                     className={
                       isAdmin
-                        ? 'absolute right-0 mt-2 w-[min(16rem,calc(100vw-2rem))] max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-[22px] border border-slate-200 bg-white text-gray-800 shadow-[0_26px_60px_rgba(15,31,45,0.16)] ring-1 ring-black/5 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
+                        ? 'absolute right-0 mt-3 w-[min(22rem,calc(100vw-2rem))] max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-2xl border border-[#e7dfd2] bg-[#fffdf8] text-gray-800 shadow-[0_20px_48px_rgba(83,65,34,0.16)] ring-1 ring-black/5'
                         : 'absolute right-0 mt-2.5 w-[min(16rem,calc(100vw-2rem))] max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-2xl bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-2xl shadow-gray-900/10 ring-1 ring-gray-200/80 dark:ring-gray-700'
                     }
                   >
                     <div
                       className={
                         isAdmin
-                          ? 'bg-gradient-to-r from-[#0f2337] via-[#12314b] to-[#1d4563] px-4 py-4 text-white'
+                          ? 'border-b border-[#eee5d6] bg-[#fffdf8] px-5 py-5 text-[#273746]'
                           : 'px-4 py-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-br from-parish-gold-light/40 to-white dark:from-gray-800 dark:to-gray-800'
                       }
                     >
                       {isAdmin ? (
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-[#d7b57a] ring-1 ring-white/15">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#b18a45] text-lg font-semibold text-white shadow-sm">
                             {initials}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold leading-tight">{user.fullname}</p>
-                            <p className="mt-0.5 truncate text-[11px] text-slate-200">{user.email}</p>
+                            <p className="truncate font-display text-xl leading-tight text-[#1f3342]">{user.fullname}</p>
+                            <p className="mt-0.5 truncate text-sm text-[#8aa0ad]">Parish Staff</p>
                           </div>
                         </div>
                       ) : (
@@ -288,22 +290,11 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
                     </div>
 
                     {isAdmin ? (
-                      <div className="py-2">
-                        <ParishionerMenuItem to="/profile" icon={IconProfile} onSelect={closeProfile}>
-                          {t('nav.manageProfile')}
-                        </ParishionerMenuItem>
-                        <ParishionerMenuItem
-                          to="/notifications"
-                          icon={IconNotifications}
-                          badge={unreadCount}
-                          onSelect={closeProfile}
-                        >
-                          {t('nav.notifications')}
-                        </ParishionerMenuItem>
-                        <ParishionerMenuItem to="/settings" icon={IconSettings} onSelect={closeProfile}>
-                          {t('nav.settings')}
-                        </ParishionerMenuItem>
-
+                      <div className="p-3">
+                        <Link to="/profile" role="menuitem" onClick={closeProfile} className="flex items-center gap-3 border-b border-[#eee5d6] px-3 py-3 text-base font-medium text-[#273746] transition hover:bg-[#faf5e9]">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5ead5] text-[#a6813f]"><IconProfile className="h-5 w-5" /></span>
+                          <span className="flex-1">{t('nav.manageProfile')}</span><span className="text-2xl text-[#a6813f]">›</span>
+                        </Link>
                         <div className="my-2 mx-4 border-t border-gray-100 dark:border-gray-700" />
 
                         <button
@@ -313,12 +304,10 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
                             closeProfile();
                             setLogoutConfirmOpen(true);
                           }}
-                          className="w-full text-left flex items-center gap-3 mx-2 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
+                          className="w-full text-left flex items-center gap-3 px-3 py-3 text-base font-medium text-red-500 transition hover:bg-red-50"
                         >
-                          <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-red-50 dark:bg-red-900/20 shrink-0">
-                            <IconLogout className="w-[18px] h-[18px]" />
-                          </span>
-                          {t('nav.logout')}
+                          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50"><IconLogout className="h-5 w-5" /></span>
+                          <span className="flex-1">{t('nav.logout')}</span><span className="text-xl text-[#a6813f]">›</span>
                         </button>
                       </div>
                     ) : (
@@ -359,6 +348,7 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
                   </div>
                 )}
               </div>
+              </>
             ) : (
               <div className="flex items-center gap-2.5">
                 <div className="relative" data-account-menu="true">
@@ -507,7 +497,7 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
 
       <LoginModal isOpen={accountOpen} onClose={() => setAccountOpen(false)} />
 
-      <Modal isOpen={logoutConfirmOpen} onClose={() => setLogoutConfirmOpen(false)} title={t('nav.logoutTitle')} size="sm">
+      <Modal isOpen={logoutConfirmOpen} onClose={() => setLogoutConfirmOpen(false)} title={t('nav.logoutTitle')} size="sm" backdropClassName="bg-[#14212b]/45" closeOnBackdrop={false} showClose={false}>
         <div className="flex flex-col items-center text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-2xl text-red-600">
             ⎋

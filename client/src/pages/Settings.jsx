@@ -141,26 +141,20 @@ export default function Settings() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl space-y-6">
-        <div className="overflow-hidden rounded-[28px] border border-[#e8dfd0] bg-[#0f2337] px-5 py-5 shadow-[0_26px_60px_rgba(15,31,45,0.18)] sm:px-7">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#d7b57a]">Preferences</p>
-          <h1 className="mt-2 text-3xl font-display text-white">{t('settings.title')}</h1>
-          <p className="mt-2 text-sm text-slate-300">{t('settings.subtitle')}</p>
-        </div>
-
+      <div className="max-w-6xl space-y-5">
         {message && (
-          <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
             {message}
           </div>
         )}
         {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_1.5fr]">
-          <section className="rounded-[26px] border border-[#e8dfd0] bg-white p-5 shadow-[0_16px_30px_rgba(15,31,45,0.04)] sm:p-6">
+        <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
+          <section className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-[#0f2337]">{t('settings.language')}</h2>
               <p className="mt-1 text-sm text-slate-500">{t('settings.languageDesc')}</p>
@@ -187,7 +181,7 @@ export default function Settings() {
             </div>
           </section>
 
-          <section className="rounded-[26px] border border-[#e8dfd0] bg-white p-5 shadow-[0_16px_30px_rgba(15,31,45,0.04)] sm:p-6">
+          <section className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-[#0f2337]">{t('settings.account')}</h2>
               <p className="mt-1 text-sm text-slate-500">{t('settings.accountDesc')}</p>
@@ -252,7 +246,7 @@ export default function Settings() {
           </section>
         </div>
 
-        <section className="rounded-[26px] border border-[#e8dfd0] bg-white p-5 shadow-[0_16px_30px_rgba(15,31,45,0.04)] sm:p-6">
+        <section className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-[#0f2337]">{t('settings.prefs')}</h2>
             <p className="mt-1 text-sm text-slate-500">{t('settings.prefsDesc')}</p>

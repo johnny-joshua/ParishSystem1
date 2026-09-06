@@ -180,53 +180,40 @@ export default function AdminReservations() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 rounded-[28px] bg-gradient-to-r from-[#0f2337] via-[#12314b] to-[#1d4563] p-6 text-white shadow-[0_24px_50px_rgba(15,31,45,0.18)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7b57a]">Reservations</p>
-            <h1 className="font-display text-3xl text-white">Manage Reservations</h1>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-300">Queue</p>
-            <p className="mt-1 text-sm font-medium text-white">Review parishioner requests</p>
-          </div>
-        </div>
-      </div>
-
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="card border-l-4 border-[#0f2337] bg-gradient-to-br from-[#f9fbfd] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Total</p>
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Total Reservations</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-[#0f2337]">{stats.total}</span>
-            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">All</span>
+            <span className="font-display text-3xl text-[#1f3342]">{stats.total}</span>
+            <span className="rounded-full bg-[#f5ead5] px-2 py-1 text-[10px] font-medium text-[#a6813f]">This month</span>
           </div>
         </div>
-        <div className="card border-l-4 border-[#d7b57a] bg-gradient-to-br from-[#fffaf1] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pending</p>
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Pending</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-[#0f2337]">{stats.pending}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{stats.pending}</span>
             <span className="rounded-full bg-[#f5ead0] px-2 py-1 text-xs font-medium text-[#775b25]">Review</span>
           </div>
         </div>
-        <div className="card border-l-4 border-emerald-500 bg-gradient-to-br from-[#f3fff9] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Approved</p>
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Approved</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-emerald-700">{stats.approved}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{stats.approved}</span>
             <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">Active</span>
           </div>
         </div>
-        <div className="card border-l-4 border-red-500 bg-gradient-to-br from-[#fff7f7] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Rejected</p>
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Rejected</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-red-600">{stats.rejected}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{stats.rejected}</span>
             <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">Needs</span>
           </div>
         </div>
       </div>
 
-      <div className="mb-5 rounded-[22px] border border-slate-200 bg-slate-50/60 p-4">
-        <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Filter status</label>
-        <select className="input-field max-w-xs" value={filter} onChange={(e) => setFilter(e.target.value)}>
+      <div className="mb-5 flex flex-col gap-3 rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Filter status</label>
+        <select className="max-w-xs rounded-full border border-[#e7dfd2] bg-white px-4 py-2 text-xs text-[#58616a]" value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="All">All Status</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -236,14 +223,14 @@ export default function AdminReservations() {
         </select>
       </div>
 
-      <div className="card overflow-hidden border border-slate-200 p-0">
+      <div className="overflow-hidden rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-0 shadow-sm">
         {loading ? (
           <p className="px-5 py-6 text-sm text-gray-500">Loading reservations...</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
-              <thead className="bg-slate-50">
-                <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <thead className="bg-[#f8f4ec]">
+                <tr className="border-b border-[#e7dfd2] text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">
                   <th className="px-5 py-3">Parishioner</th>
                   <th className="px-5 py-3">Service</th>
                   <th className="px-5 py-3">Date / Time</th>
@@ -253,13 +240,13 @@ export default function AdminReservations() {
               </thead>
               <tbody>
                 {items.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-200 transition hover:bg-slate-50/80">
+                  <tr key={r.id} className="border-b border-[#eee7db] transition hover:bg-[#faf5e9]">
                     <td className="px-5 py-4">
-                      <div className="font-semibold text-slate-800">{r.fullname}</div>
-                      <div className="text-xs text-slate-500">{r.email}</div>
+                      <div className="font-medium text-[#273746]">{r.fullname}</div>
+                      <div className="text-xs text-[#7a7d7f]">{r.email}</div>
                     </td>
-                    <td className="px-5 py-4 text-slate-700">{r.service_type}</td>
-                    <td className="px-5 py-4 text-slate-700">
+                    <td className="px-5 py-4 text-[#58616a]">{r.service_type}</td>
+                    <td className="px-5 py-4 text-[#58616a]">
                       {r.reservation_date} {r.reservation_time?.slice(0, 5)}
                     </td>
                     <td className="px-5 py-4">

@@ -4,7 +4,7 @@ import StatusBadge from '../../components/cards/StatusBadge';
 import LoadingSpinner from '../../components/forms/LoadingSpinner';
 import Modal from '../../components/forms/Modal';
 import ImagePreviewModal from '../../components/forms/ImagePreviewModal';
-import { SERVICE_TYPES, STATUSES } from '../../utils/constants';
+import { SERVICE_TYPES } from '../../utils/constants';
 import {
   fetchReservationDocument,
   getRecordArchive,
@@ -559,9 +559,6 @@ export default function AdminRecords() {
 
   const stats = {
     total: records.length,
-    active: records.filter((item) => item.status === 'Approved' || item.status === 'Completed' || item.status === 'Sent').length,
-    pending: records.filter((item) => item.status === 'Pending').length,
-    manual: records.filter((item) => item.is_unlinked).length,
   };
 
   const serviceFolders = SERVICE_TYPES.map((service) => ({
@@ -569,64 +566,37 @@ export default function AdminRecords() {
     records: records.filter((record) => record.service_type === service),
   }));
 
+  const scrollToServiceFolder = (service) => {
+    const id = `record-folder-${service.toLowerCase().replace(/\s+/g, '-')}`;
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <DashboardLayout>
-      <div className="mb-6 rounded-[28px] bg-gradient-to-r from-[#0f2337] via-[#12314b] to-[#1d4563] p-6 text-white shadow-[0_24px_50px_rgba(15,31,45,0.18)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7b57a]">Archive</p>
-            <h1 className="font-display text-3xl text-white">Parish Records</h1>
-          </div>
-          {!loading && !error && (
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-300">Records</p>
-              <p className="mt-1 text-sm font-medium text-white">{records.length} active entries</p>
-            </div>
-          )}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold text-[#6e7274]">Total Records</p>
+          <p className="mt-2 font-display text-3xl text-[#1f3342]">{stats.total}</p>
+          <span className="mt-2 inline-flex rounded-full bg-[#f5ead5] px-2 py-1 text-[10px] font-medium text-[#a6813f]">All</span>
         </div>
+        {serviceFolders.map(({ service, records: folderRecords }) => (
+          <div key={service} className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+            <p className="truncate text-xs font-semibold text-[#6e7274]">{service}</p>
+            <p className="mt-2 font-display text-3xl text-[#1f3342]">{folderRecords.length}</p>
+            <button type="button" className="mt-2 inline-flex rounded-full bg-[#f5ead5] px-3 py-1 text-[10px] font-medium text-[#a6813f] transition hover:bg-[#ead9b8]" onClick={() => scrollToServiceFolder(service)}>View</button>
+          </div>
+        ))}
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="card border-l-4 border-[#0f2337] bg-gradient-to-br from-[#f9fbfd] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Total</p>
-          <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-[#0f2337]">{stats.total}</span>
-            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">All</span>
-          </div>
-        </div>
-        <div className="card border-l-4 border-emerald-500 bg-gradient-to-br from-[#f3fff9] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Active</p>
-          <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-emerald-700">{stats.active}</span>
-            <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">Ready</span>
-          </div>
-        </div>
-        <div className="card border-l-4 border-[#d7b57a] bg-gradient-to-br from-[#fffaf1] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pending</p>
-          <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-[#0f2337]">{stats.pending}</span>
-            <span className="rounded-full bg-[#f5ead0] px-2 py-1 text-xs font-medium text-[#775b25]">Review</span>
-          </div>
-        </div>
-        <div className="card border-l-4 border-orange-500 bg-gradient-to-br from-[#fffaf3] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Manual</p>
-          <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-orange-600">{stats.manual}</span>
-            <span className="rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700">Entries</span>
-          </div>
-        </div>
-      </div>
-
-      <form onSubmit={handleSearch} className="card mb-6 border border-slate-200 bg-slate-50/60 p-5">
+      <form onSubmit={handleSearch} className="mb-6 rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-sm">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Search &amp; Filter</h2>
-            <p className="mt-1 text-sm text-slate-600">Find records by name, service type, or status</p>
+            <p className="mt-1 text-sm text-[#6e7274]">Find records by name or service type</p>
           </div>
           {hasActiveFilters && (
             <button
               type="button"
-              className="text-sm font-medium text-slate-600 transition hover:text-[#0f2337]"
+              className="text-sm font-medium text-[#a6813f] transition hover:text-[#775b25]"
               onClick={handleClearFilters}
             >
               Clear filters
@@ -634,9 +604,9 @@ export default function AdminRecords() {
           )}
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="sm:col-span-2 lg:col-span-2">
-            <label htmlFor="records-search" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[1.6fr_0.9fr_auto]">
+          <div>
+            <label htmlFor="records-search" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">
               Search
             </label>
             <div className="relative">
@@ -645,7 +615,7 @@ export default function AdminRecords() {
               </span>
               <input
                 id="records-search"
-                className="input-field pl-10"
+                className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 pl-10 text-xs text-[#58616a] outline-none focus:border-[#b18a45] focus:ring-2 focus:ring-[#d7b57a]/20"
                 placeholder="Search by full name, email, or phone"
                 value={draft.q}
                 onChange={(e) => setDraft({ ...draft, q: e.target.value })}
@@ -654,12 +624,12 @@ export default function AdminRecords() {
           </div>
 
           <div>
-            <label htmlFor="records-service" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <label htmlFor="records-service" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">
               Service Type
             </label>
             <select
               id="records-service"
-              className="input-field"
+              className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a] outline-none focus:border-[#b18a45] focus:ring-2 focus:ring-[#d7b57a]/20"
               value={draft.service}
               onChange={(e) => setDraft({ ...draft, service: e.target.value })}
             >
@@ -672,28 +642,7 @@ export default function AdminRecords() {
             </select>
           </div>
 
-          <div>
-            <label htmlFor="records-status" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Status
-            </label>
-            <select
-              id="records-status"
-              className="input-field"
-              value={draft.status}
-              onChange={(e) => setDraft({ ...draft, status: e.target.value })}
-            >
-              <option value="">All statuses</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-4 flex justify-end">
-          <button type="submit" className="btn-primary min-w-[120px]">
+          <button type="submit" className="w-full rounded-full bg-[#b18a45] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#967338] lg:w-auto">
             Search
           </button>
         </div>
@@ -722,22 +671,10 @@ export default function AdminRecords() {
           <div className="space-y-6">
             <div>
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Record Management</p>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                {serviceFolders.map(({ service, records: folderRecords }) => (
-                  <div key={service} className="card border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#d7b57a] hover:shadow-lg">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-3xl" aria-hidden="true">📁</span>
-                      <span className="rounded-full bg-[#f5ead0] px-2.5 py-1 text-xs font-bold text-[#775b25]">{folderRecords.length}</span>
-                    </div>
-                    <h2 className="mt-4 font-display text-xl text-[#0f2337]">{service}</h2>
-                    <p className="mt-1 text-xs text-slate-500">Reservation folders</p>
-                  </div>
-                ))}
-              </div>
             </div>
 
             {serviceFolders.map(({ service, records: folderRecords }) => (
-              <section key={service} className="card overflow-hidden border border-slate-200 p-0">
+              <section key={service} id={`record-folder-${service.toLowerCase().replace(/\s+/g, '-')}`} className="card scroll-mt-6 overflow-hidden border border-slate-200 p-0">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4">
                   <div>
                     <h2 className="font-display text-2xl text-[#0f2337]">📁 {service}</h2>

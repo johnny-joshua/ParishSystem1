@@ -5,8 +5,19 @@ import {
   IconAppointments,
   IconCalendar,
   IconDashboard,
+  IconNotifications,
+  IconProfile,
   IconReservations,
+  IconSettings,
 } from '../icons/ParishionerNavIcons';
+
+function IconFolder({ className = 'h-[18px] w-[18px]' }) {
+  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.5 6.5h6l2 2h9v9.25A2.25 2.25 0 0118.25 20h-13A2.25 2.25 0 013 17.75V7.75a1.25 1.25 0 011.25-1.25z" /><path d="M3.5 9h17" /></svg>;
+}
+
+function IconChart({ className = 'h-[18px] w-[18px]' }) {
+  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 19V5M4 19h16" /><path d="M7 15l3-4 3 2 5-7" /></svg>;
+}
 
 export default function Sidebar({ isMobileOpen = false, onClose = () => {} }) {
   const { isAdmin } = useAuth();
@@ -20,35 +31,40 @@ export default function Sidebar({ isMobileOpen = false, onClose = () => {} }) {
   ];
 
   const adminLinks = [
-    { to: '/admin/dashboard', label: t('nav.dashboard'), icon: '🏠' },
+    { to: '/admin/dashboard', label: t('nav.dashboard'), Icon: IconDashboard },
     { to: '/admin/parish-calendar', label: 'Parish Calendar', Icon: IconCalendar },
-    { to: '/admin/reservations', label: t('sidebar.reservations'), icon: '📋' },
-    { to: '/admin/appointments', label: t('sidebar.appointments'), icon: '📅' },
-    { to: '/admin/records', label: t('sidebar.records'), icon: '📁' },
-    { to: '/admin/users', label: t('sidebar.users'), icon: '👥' },
-    { to: '/admin/sms-logs', label: 'SMS Logs', icon: '📱' },
-    { to: '/admin/reports', label: 'Reports', icon: '📊' },
+    { to: '/admin/reservations', label: t('sidebar.reservations'), Icon: IconReservations },
+    { to: '/admin/appointments', label: t('sidebar.appointments'), Icon: IconAppointments },
+    { to: '/admin/records', label: t('sidebar.records'), Icon: IconFolder },
+    { to: '/admin/users', label: t('sidebar.users'), Icon: IconProfile },
+    { to: '/admin/sms-logs', label: 'SMS Logs', Icon: IconNotifications },
+    { to: '/admin/reports', label: 'Reports', Icon: IconChart },
+    { to: '/settings', label: t('nav.settings'), Icon: IconSettings },
   ];
 
   if (isAdmin) {
     return (
       <aside
-        className={`fixed left-0 top-16 sm:top-20 z-40 h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] w-[82vw] max-w-[280px] overflow-y-auto border-r border-slate-200 bg-gradient-to-b from-[#f8fafc] to-[#f3f5f8] shadow-[0_12px_28px_rgba(15,31,45,0.06)] transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 2xl:top-0 2xl:h-screen 2xl:w-64 2xl:translate-x-0 2xl:shadow-[0_12px_28px_rgba(15,31,45,0.06)] ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full 2xl:translate-x-0'
+        className={`fixed left-0 top-16 sm:top-20 z-40 h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] w-[82vw] max-w-[280px] overflow-y-auto border-r border-[#e7dfd2] bg-[#f7f3eb] shadow-[0_12px_28px_rgba(83,65,34,0.08)] transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 xl:top-0 xl:h-screen xl:w-64 xl:translate-x-0 xl:shadow-[0_12px_28px_rgba(83,65,34,0.08)] ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'
         }`}
       >
         <div className="flex h-full flex-col p-4">
-          <nav className="mt-1 space-y-1.5" aria-label="Admin navigation">
+          <div className="mb-4 flex items-center gap-2 border-b border-[#e7dfd2] px-2 pb-4">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#c9a25c] text-[#b18a45]"><IconDashboard className="h-5 w-5" /></span>
+            <span className="leading-tight"><span className="block font-display text-sm font-bold text-[#273746]">Holy Family Parish</span><span className="block text-[7px] uppercase tracking-[0.18em] text-[#9a8666]">Faith · Service · Community</span></span>
+          </div>
+          <nav className="space-y-1.5" aria-label="Admin navigation">
             {adminLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 onClick={onClose}
                 className={({ isActive }) =>
-                  `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                      `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-[#0f2337] text-white shadow-md shadow-[#0f2337]/15'
-                      : 'text-slate-700 hover:bg-[#f1e7d1] hover:text-[#0f2337] dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white'
+                      ? 'bg-[#b18a45] text-white shadow-md shadow-[#b18a45]/20'
+                      : 'text-[#58616a] hover:bg-[#f1e7d1] hover:text-[#273746] dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white'
                   }`
                 }
               >
@@ -56,7 +72,7 @@ export default function Sidebar({ isMobileOpen = false, onClose = () => {} }) {
                   <>
                     <span
                       className={`flex h-9 w-9 items-center justify-center rounded-lg text-base transition-colors duration-200 ${
-                        isActive ? 'bg-white/10 text-[#d7b57a]' : 'bg-slate-100 text-slate-600 group-hover:bg-[#e9dcc0] group-hover:text-[#0f2337]'
+                        isActive ? 'bg-white/15 text-white' : 'bg-[#eee5d6] text-[#a6813f] group-hover:bg-[#e9dcc0] group-hover:text-[#273746]'
                       }`}
                     >
                       {link.Icon ? <link.Icon className="h-[18px] w-[18px]" /> : link.icon}
@@ -75,8 +91,8 @@ export default function Sidebar({ isMobileOpen = false, onClose = () => {} }) {
 
   return (
     <aside
-      className={`fixed left-0 top-16 sm:top-20 z-40 h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] w-[82vw] max-w-[280px] overflow-y-auto border-r border-gray-200/80 bg-white shadow-sm transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 2xl:top-0 2xl:h-screen 2xl:w-64 2xl:translate-x-0 2xl:shadow-sm ${
-        isMobileOpen ? 'translate-x-0' : '-translate-x-full 2xl:translate-x-0'
+      className={`fixed left-0 top-16 sm:top-20 z-40 h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] w-[82vw] max-w-[280px] overflow-y-auto border-r border-gray-200/80 bg-white shadow-sm transition-transform duration-200 dark:border-gray-700 dark:bg-gray-900 xl:top-0 xl:h-screen xl:w-64 xl:translate-x-0 xl:shadow-sm ${
+        isMobileOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'
       }`}
     >
       <div className="flex flex-col h-full px-3 py-5">

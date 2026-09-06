@@ -156,36 +156,25 @@ export default function AdminUsers() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8f6d2d]">Admin panel</p>
-          <h1 className="font-display text-3xl text-parish-blue">{t('users.title')}</h1>
-          <p className="mt-1 text-sm text-gray-600">{t('users.subtitle')}</p>
-        </div>
-        <button type="button" className="btn-gold" onClick={openCreate}>
-          + {t('users.addUser')}
-        </button>
-      </div>
-
       <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <div className="card border-l-4 border-[#0f2337] bg-gradient-to-br from-[#f9fbfd] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Total users</p>
+        <div className="rounded-xl border border-[#d7b57a] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Total Users</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-parish-blue">{pagination.total || users.length}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{pagination.total || users.length}</span>
             <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">Live</span>
           </div>
         </div>
-        <div className="card border-l-4 border-[#d7b57a] bg-gradient-to-br from-[#fffaf1] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Administrators</p>
+        <div className="rounded-xl border border-[#d7b57a] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Administrators</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-[#0f2337]">{adminCount}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{adminCount}</span>
             <span className="rounded-full bg-[#f5ead0] px-2 py-1 text-xs font-medium text-[#775b25]">Admins</span>
           </div>
         </div>
-        <div className="card border-l-4 border-emerald-500 bg-gradient-to-br from-[#f3fff9] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Parishioners</p>
+        <div className="rounded-xl border border-[#d7b57a] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Parishioners</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-emerald-700">{parishionerCount}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{parishionerCount}</span>
             <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">Members</span>
           </div>
         </div>
@@ -194,15 +183,15 @@ export default function AdminUsers() {
       {message && <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm">{message}</div>}
       {error && !modalOpen && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">{error}</div>}
 
-      <form onSubmit={handleSearch} className="card mb-6 grid gap-3 border border-slate-200 bg-slate-50/60 p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <form onSubmit={handleSearch} className="mb-6 grid items-end gap-3 rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[1.6fr_0.9fr_auto_auto]">
         <input
-          className="input-field lg:col-span-2"
+          className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a] outline-none focus:border-[#b18a45] focus:ring-2 focus:ring-[#d7b57a]/20 lg:col-span-1"
           placeholder={t('users.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <select
-          className="input-field"
+          className="w-full rounded-full border border-[#e7dfd2] bg-white px-3.5 py-2.5 text-xs text-[#58616a] outline-none focus:border-[#b18a45] focus:ring-2 focus:ring-[#d7b57a]/20"
           value={roleFilter}
           aria-label={t('users.filterRole')}
           onChange={(e) => {
@@ -214,8 +203,11 @@ export default function AdminUsers() {
           <option value="user">{t('users.roleUser')}</option>
           <option value="admin">{t('users.roleAdmin')}</option>
         </select>
-        <button type="submit" className="btn-primary">
+        <button type="submit" className="w-full rounded-full bg-[#b18a45] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#967338] lg:w-auto">
           {t('common.search')}
+        </button>
+        <button type="button" className="w-full rounded-full border border-[#b18a45] bg-white px-5 py-2.5 text-xs font-semibold text-[#a6813f] transition hover:bg-[#f5ead5] lg:w-auto" onClick={openCreate}>
+          + {t('users.addUser')}
         </button>
       </form>
 
@@ -223,11 +215,11 @@ export default function AdminUsers() {
         <LoadingSpinner />
       ) : (
         <>
-          <div className="card overflow-hidden border border-slate-200 p-0">
+          <div className="overflow-hidden rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-0 shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-sm">
-                <thead className="bg-slate-50">
-                  <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <thead className="bg-[#f8f4ec]">
+                  <tr className="border-b border-[#e7dfd2] text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">
                     <th className="px-5 py-3">{t('profile.fullName')}</th>
                     <th className="px-5 py-3">{t('profile.email')}</th>
                     <th className="px-5 py-3">{t('profile.phone')}</th>
@@ -238,20 +230,20 @@ export default function AdminUsers() {
                 </thead>
                 <tbody>
                   {users.map((user) => (
-                    <tr key={user.id} className="border-b border-slate-200 transition hover:bg-slate-50/80">
+                    <tr key={user.id} className="border-b border-[#eee7db] transition hover:bg-[#faf5e9]">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 min-w-[2.75rem] items-center justify-center rounded-full bg-gradient-to-br from-[#0f2337] to-[#1b3c56] text-sm font-bold text-white shadow-sm ring-2 ring-white">
+                            <div className="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-full bg-[#14212b] text-xs font-bold text-white shadow-sm ring-2 ring-white">
                             {user.fullname?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
                           <div className="min-w-0">
-                            <div className="truncate font-semibold text-slate-800">{user.fullname}</div>
-                            <div className="text-xs text-slate-500">ID #{user.id}</div>
+                            <div className="truncate font-medium text-[#273746]">{user.fullname}</div>
+                            <div className="text-xs text-[#7a7d7f]">ID #{user.id}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-slate-600">{user.email}</td>
-                      <td className="px-5 py-4 text-slate-600">{user.phone}</td>
+                      <td className="px-5 py-4 text-[#58616a]">{user.email}</td>
+                      <td className="px-5 py-4 text-[#58616a]">{user.phone}</td>
                       <td className="px-5 py-4">
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${

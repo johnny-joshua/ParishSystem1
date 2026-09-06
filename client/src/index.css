@@ -91,6 +91,24 @@ html {
 }
 
 @layer utilities {
+  .admin-dashboard-nav {
+    background: rgba(255, 253, 248, 0.96) !important;
+    border-color: #e7dfd2 !important;
+    color: #273746 !important;
+    box-shadow: 0 8px 24px rgba(83, 65, 34, 0.08) !important;
+  }
+
+  .admin-dashboard-nav .text-white,
+  .admin-dashboard-nav .text-\[\#f7f3eb\] {
+    color: #273746 !important;
+  }
+
+  .admin-dashboard-nav button[aria-label="Profile menu"] {
+    background: #b18a45 !important;
+    color: #fffdf8 !important;
+    border-color: #c9a25c !important;
+  }
+
   .home-page {
     background:
       radial-gradient(circle at top, rgba(215, 181, 122, 0.18), transparent 20%),

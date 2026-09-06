@@ -100,52 +100,39 @@ export default function AdminAppointments() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 rounded-[28px] bg-gradient-to-r from-[#0f2337] via-[#12314b] to-[#1d4563] p-6 text-white shadow-[0_24px_50px_rgba(15,31,45,0.18)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7b57a]">Appointments</p>
-            <h1 className="font-display text-3xl text-white">Manage Appointments</h1>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-300">Overview</p>
-            <p className="mt-1 text-sm font-medium text-white">Review church service requests</p>
-          </div>
-        </div>
-      </div>
-
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <div className="card border-l-4 border-[#0f2337] bg-gradient-to-br from-[#f9fbfd] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Total</p>
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Total Appointments</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-[#0f2337]">{stats.total}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{stats.total}</span>
             <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">All</span>
           </div>
         </div>
-        <div className="card border-l-4 border-[#d7b57a] bg-gradient-to-br from-[#fffaf1] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pending</p>
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Pending</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-[#0f2337]">{stats.pending}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{stats.pending}</span>
             <span className="rounded-full bg-[#f5ead0] px-2 py-1 text-xs font-medium text-[#775b25]">Review</span>
           </div>
         </div>
-        <div className="card border-l-4 border-emerald-500 bg-gradient-to-br from-[#f3fff9] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Approved</p>
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Approved</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-emerald-700">{stats.approved}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{stats.approved}</span>
             <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">Active</span>
           </div>
         </div>
-        <div className="card border-l-4 border-blue-500 bg-gradient-to-br from-[#f3f8ff] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Completed</p>
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Completed</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-blue-700">{stats.completed}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{stats.completed}</span>
             <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">Done</span>
           </div>
         </div>
-        <div className="card border-l-4 border-red-500 bg-gradient-to-br from-[#fff7f7] to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Rejected</p>
+        <div className="rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-4 shadow-[0_8px_22px_rgba(83,65,34,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a7d7f]">Rejected</p>
           <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold text-red-600">{stats.rejected}</span>
+            <span className="font-display text-3xl text-[#1f3342]">{stats.rejected}</span>
             <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">Needs</span>
           </div>
         </div>
@@ -266,17 +253,13 @@ export default function AdminAppointments() {
                             </button>
                           </>
                         )}
-                        {canViewRemarks(a.status) && (
+                        {canViewRemarks(a.status) && a.remarks && (
                           <button
                             type="button"
                             className="text-sm font-semibold text-slate-600"
                             onClick={() => toggleRemarks(a.id)}
                           >
-                            {showRemarks[a.id]
-                              ? 'Hide Remarks'
-                              : a.remarks
-                                ? 'View Remarks'
-                                : 'Add Remarks'}
+                            {showRemarks[a.id] ? 'Hide Remarks' : 'View Remarks'}
                           </button>
                         )}
                       </div>

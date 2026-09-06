@@ -12,17 +12,17 @@ export default function DashboardLayout({ children }) {
   }, [sidebarOpen]);
 
   return (
-    <div className="min-h-screen min-h-[100dvh] flex flex-col page-shell 2xl:h-screen 2xl:overflow-hidden">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col page-shell xl:h-screen xl:overflow-hidden">
       <Navbar dashboard isSidebarOpen={sidebarOpen} onSidebarToggle={() => setSidebarOpen((value) => !value)} />
       {sidebarOpen && (
         <button
           type="button"
           aria-label="Close sidebar"
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-30 bg-slate-950/20 2xl:hidden"
+          className="fixed inset-0 z-30 bg-slate-950/20 xl:hidden"
         />
       )}
-      <div className="relative flex flex-1 min-h-0 min-w-0 2xl:pl-64 2xl:overflow-hidden">
+      <div className="relative flex flex-1 min-h-0 min-w-0 xl:pl-64 xl:overflow-hidden">
         <Sidebar isMobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex flex-1 flex-col min-h-0 min-w-0">
           <main className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">

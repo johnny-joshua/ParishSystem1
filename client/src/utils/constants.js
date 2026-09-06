@@ -8,6 +8,16 @@ export const SERVICE_TYPES = [
   'Private Mass',
 ];
 
+export const SERVICE_COLORS = {
+  Baptism: '#b18a45',
+  Marriage: '#d7b57a',
+  Funeral: '#71835d',
+  'Mass Intention': '#c97d70',
+  'Private Mass': '#40566b',
+  Appointments: '#8b6b3e',
+  Appointment: '#8b6b3e',
+};
+
 // Admin can replace image URLs below to customize landing page service cards.
 export const SERVICE_CARDS = [
   {

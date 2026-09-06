@@ -15,6 +15,14 @@ export default function Notifications() {
   const { t } = useSettings();
   const { notifications, unreadCount, loading, markRead, markAllRead, remove } = useNotifications();
   const [selectedNotification, setSelectedNotification] = useState(null);
+  const [notificationFilter, setNotificationFilter] = useState('all');
+
+  const readCount = notifications.filter((notification) => Number(notification.is_read)).length;
+  const visibleNotifications = notifications.filter((notification) => {
+    if (notificationFilter === 'unread') return !Number(notification.is_read);
+    if (notificationFilter === 'read') return Number(notification.is_read);
+    return true;
+  });
 
   const handleDelete = async (id) => {
     if (!window.confirm(t('notifications.deleteConfirm'))) return;
@@ -38,37 +46,14 @@ export default function Notifications() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl">
-        <div className="mb-7 overflow-hidden rounded-[28px] border border-[#e8dfd0] bg-[#0f2337] px-5 py-5 shadow-[0_24px_60px_rgba(15,31,45,0.18)] sm:px-7">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#d7b57a]">Parish updates</p>
-              <h1 className="mt-2 text-3xl font-display text-white">{t('notifications.title')}</h1>
-              <p className="mt-2 text-sm text-slate-300">{t('notifications.subtitle')}</p>
-            </div>
-
-            <div className="flex items-center gap-3 self-start rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 backdrop-blur-sm">
-              <span className="text-[10px] uppercase tracking-[0.25em] text-slate-300">Unread</span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d7b57a] text-sm font-bold text-[#0f2337]">
-                {unreadCount}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {unreadCount > 0 && (
-          <div className="mb-6 flex justify-end">
-            <button type="button" onClick={markAllRead} className="btn-outline text-sm py-2 px-4">
-              {t('common.markAllRead')}
-            </button>
-          </div>
-        )}
+      <div className="max-w-6xl">
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-[#e7dfd2] bg-[#fffdf8] p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"><div className="flex w-fit rounded-full border border-[#e7dfd2] bg-white p-1">{[['all', 'All', notifications.length], ['unread', 'Unread', unreadCount], ['read', 'Read', readCount]].map(([value, label, count]) => <button key={value} type="button" onClick={() => setNotificationFilter(value)} className={`rounded-full px-4 py-2 text-xs font-semibold transition ${notificationFilter === value ? 'bg-[#f5ead5] text-[#a6813f] shadow-sm' : 'text-[#7a7d7f] hover:bg-[#faf5e9]'}`}>{label} <span className="ml-1 rounded-full bg-[#f1e7d3] px-1.5 py-0.5 text-[10px] text-[#775b25]">{count}</span></button>)}</div>{unreadCount > 0 && <button type="button" onClick={markAllRead} className="w-fit rounded-full border border-[#b18a45] bg-[#b18a45] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#967338]">{t('common.markAllRead')}</button>}</div>
 
         {loading && notifications.length === 0 ? (
           <div className="rounded-[26px] border border-[#efe7db] bg-white p-8 shadow-[0_18px_35px_rgba(15,31,45,0.04)]">
             <LoadingSpinner />
           </div>
-        ) : notifications.length === 0 ? (
+        ) : visibleNotifications.length === 0 ? (
           <div className="rounded-[26px] border border-dashed border-[#d9d0c2] bg-[#fdfbf8] px-6 py-14 text-center shadow-[0_18px_35px_rgba(15,31,45,0.04)]">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#f1e7d3] text-2xl">🔔</div>
             <p className="mt-5 text-lg font-semibold text-[#0f2337]">{t('notifications.empty')}</p>
@@ -76,16 +61,16 @@ export default function Notifications() {
           </div>
         ) : (
           <ul className="space-y-4">
-            {notifications.map((n) => (
+            {visibleNotifications.map((n) => (
               <li
                 key={n.id}
-                className={`group relative overflow-hidden rounded-[24px] border bg-white p-4 shadow-[0_18px_35px_rgba(15,31,45,0.04)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(15,31,45,0.08)] sm:p-5 ${
-                  !Number(n.is_read) ? 'border-[#d7b57a]/70 bg-[#fffcf7]' : 'border-[#e8e4dc]'
+                  className={`group relative overflow-hidden rounded-xl border bg-[#fffdf8] p-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-4 ${
+                  !Number(n.is_read) ? 'border-[#d7b57a] bg-[#fffaf1]' : 'border-[#e7dfd2]'
                 }`}
               >
                 <div className={`absolute inset-y-0 left-0 w-1.5 ${!Number(n.is_read) ? 'bg-[#d7b57a]' : 'bg-transparent'}`} />
 
-                <div className="flex flex-col gap-4 pl-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex flex-col gap-3 pl-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {!Number(n.is_read) && (
@@ -93,36 +78,34 @@ export default function Notifications() {
                           New
                         </span>
                       )}
-                      <p className="text-lg font-semibold text-[#0f2337]">{n.title}</p>
+                      <p className="text-base font-semibold text-[#0f2337]">{n.title}</p>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{n.message}</p>
-                    <p className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">{formatWhen(n.created_at)}</p>
+                    <p className="mt-1 line-clamp-1 text-xs leading-5 text-slate-600">{n.message}</p>
+                    <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">{formatWhen(n.created_at)}</p>
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                     <button
                       type="button"
                       onClick={() => openNotification(n)}
-                      className="btn-primary text-sm py-2.5 px-3"
+                      className="rounded-lg bg-[#14212b] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#243b4d]"
                     >
                       {t('common.view')}
                     </button>
-                    {!Number(n.is_read) && (
-                      <button
-                        type="button"
-                        onClick={() => markRead(n.id)}
-                        className="rounded-lg border border-[#d7b57a] bg-[#f8f0df] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#0f2337] transition hover:bg-[#f2e3bf]"
-                      >
-                        {t('common.markRead')}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => markRead(n.id)}
+                      className="rounded-lg border border-[#d7b57a] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#a6813f] transition hover:bg-[#f5ead5]"
+                    >
+                      {t('common.markRead')}
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(n.id)}
-                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-red-600 transition hover:bg-red-100"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-500 transition hover:bg-red-50"
                       aria-label={t('common.delete')}
                     >
-                      {t('common.delete')}
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </button>
                   </div>
                 </div>
