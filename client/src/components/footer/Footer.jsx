@@ -5,10 +5,10 @@ import { PARISH_LOCATION } from '../../utils/constants';
 const MAPS_URL = 'https://www.google.com/maps?q=Holy%20Family%20Parish%20Putiao%20Pilar%20Sorsogon';
 
 const EXPLORE_LINKS = [
-  { label: 'Home', href: '/#home' },
-  { label: 'Parish Services', href: '/#services' },
-  { label: 'About Us', href: '/#about' },
-  { label: 'Contact', href: '/#contact' },
+  { label: 'Home', to: '/' },
+  { label: 'Parish Services', to: '/services' },
+  { label: 'About Us', to: '/about' },
+  { label: 'Contact', to: '/contact' },
 ];
 
 const PORTAL_LINKS = [
@@ -17,14 +17,14 @@ const PORTAL_LINKS = [
   { label: 'Reservations', to: '/reservations' },
 ];
 
-function FooterLink({ href, children }) {
+function FooterLink({ to, children }) {
   return (
-    <a
-      href={href}
+    <Link
+      to={to}
       className="text-sm text-blue-100/90 hover:text-parish-gold transition-colors duration-200"
     >
       {children}
-    </a>
+    </Link>
   );
 }
 
@@ -46,9 +46,17 @@ export default function Footer() {
   if (user) return null;
 
   return (
-    <footer className="mt-auto bg-parish-blue text-white relative overflow-hidden">
+    <footer className="mt-auto w-full bg-[#14212b] p-0 text-white">
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        className="relative w-full overflow-hidden bg-[#14212b]"
+        style={{
+          backgroundImage: "linear-gradient(90deg, rgba(20, 33, 43, 0.98) 0%, rgba(20, 33, 43, 0.95) 48%, rgba(20, 33, 43, 0.82) 100%), url('/parish.jpg')",
+          backgroundPosition: 'center right',
+          backgroundSize: 'cover',
+        }}
+      >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
           backgroundSize: '28px 28px',
@@ -56,18 +64,20 @@ export default function Footer() {
         aria-hidden
       />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 md:pt-16 pb-10">
+      <div className="relative mx-auto max-w-7xl px-5 pb-10 pt-12 sm:px-8 md:pt-14 lg:px-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-5">
             <Link to="/" className="inline-flex items-center gap-2.5 group mb-5">
-              <span className="text-parish-gold text-2xl leading-none transition-transform group-hover:scale-110">
-                ✦
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-parish-gold text-parish-gold transition-transform group-hover:scale-110">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                  <path d="M4 20h16M6 20V10h12v10M4 10l8-6 8 6M9 20v-5h6v5M12 4v-2M10.5 4h3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </span>
-              <span className="font-display text-xl font-bold text-white group-hover:text-parish-gold transition-colors">
+                <span className="font-display text-lg font-bold text-white transition-colors group-hover:text-parish-gold">
                 {PARISH_LOCATION.name}
               </span>
             </Link>
-            <p className="text-blue-100/80 text-sm leading-relaxed max-w-sm mb-6">
+              <p className="mb-6 max-w-sm text-sm leading-relaxed text-blue-100/80">
               A centralized digital record management system for sacraments, reservations, and pastoral
               services—serving the faithful of Putiao, Pilar, Sorsogon.
             </p>
@@ -117,18 +127,18 @@ export default function Footer() {
           </div>
 
           <div className="lg:col-span-2 lg:col-start-7">
-            <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-parish-gold mb-4">Explore</h4>
+            <h4 className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-parish-gold">Quick Links</h4>
             <ul className="space-y-2.5">
               {EXPLORE_LINKS.map((link) => (
-                <li key={link.href}>
-                  <FooterLink href={link.href}>{link.label}</FooterLink>
+                <li key={link.to}>
+                  <FooterLink to={link.to}>{link.label}</FooterLink>
                 </li>
               ))}
             </ul>
           </div>
 
           <div className="lg:col-span-2">
-            <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-parish-gold mb-4">Parish Portal</h4>
+            <h4 className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-parish-gold">Parish Portal</h4>
             <ul className="space-y-2.5">
               {PORTAL_LINKS.map((link) => (
                 <li key={link.to}>
@@ -139,13 +149,13 @@ export default function Footer() {
           </div>
 
           <div className="lg:col-span-2">
-            <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-parish-gold mb-4">Stay Connected</h4>
+            <h4 className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-parish-gold">Stay Connected</h4>
             <p className="text-sm text-blue-100/80 leading-relaxed mb-4">
               Visit the parish office for sacramental inquiries, or register online to book services.
             </p>
             <Link
               to="/register"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-parish-gold text-parish-blue text-sm font-semibold px-4 py-2.5 hover:bg-yellow-500 transition shadow-md hover:shadow-lg"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-parish-gold px-4 py-2.5 text-sm font-semibold text-parish-blue shadow-md transition hover:bg-yellow-500 hover:shadow-lg"
             >
               Get Started
               <span aria-hidden>→</span>
@@ -166,6 +176,7 @@ export default function Footer() {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </footer>
   );

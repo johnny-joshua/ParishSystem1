@@ -1,9 +1,10 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useSettings } from '../../context/SettingsContext';
 import Modal from '../forms/Modal';
+import LoginModal from '../forms/LoginModal';
 import {
   IconLogout,
   IconNotifications,
@@ -104,7 +105,8 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
       const clickedInsideAccount = e.target.closest('[data-account-menu="true"]');
 
       if (!clickedInsideProfile) setProfileOpen(false);
-      if (!clickedInsideAccount) setAccountOpen(false);
+      const clickedInsideLoginModal = e.target.closest('[data-login-modal="true"]');
+      if (!clickedInsideAccount && !clickedInsideLoginModal) setAccountOpen(false);
     };
 
     document.addEventListener('mousedown', onDocMouseDown);
@@ -118,7 +120,7 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
 
   return (
     <>
-      <nav className={`fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0f2337]/95 backdrop-blur-xl shadow-[0_12px_28px_rgba(6,14,22,0.14)] ${dashboard ? '2xl:left-64' : ''}`}>
+      <nav className={`fixed inset-x-0 top-0 z-50 border-b backdrop-blur-xl ${user ? 'border-white/10 bg-[#0f2337]/95 text-white shadow-[0_12px_28px_rgba(6,14,22,0.14)]' : 'border-[#e8dfd0] bg-[#fffdf8]/95 text-[#273746] shadow-[0_8px_24px_rgba(83,65,34,0.08)]'} ${dashboard ? '2xl:left-64' : ''}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-2 sm:gap-5 h-16 sm:h-20">
           {!user && (
@@ -127,14 +129,14 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
               aria-label="Open navigation menu"
               aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen((value) => !value)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-lg text-white sm:hidden"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d9ccb7] bg-white text-lg text-[#58616a] shadow-sm sm:hidden"
             >
               {mobileMenuOpen ? '×' : '☰'}
             </button>
           )}
 
-          {user && (
-            <div className="flex min-w-0 items-center gap-2 2xl:min-w-[180px] 2xl:shrink-0">
+          <div className="flex min-w-0 items-center gap-2 2xl:min-w-[180px] 2xl:shrink-0">
+            {user && (
               <button
                 type="button"
                 aria-label={isSidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
@@ -144,70 +146,75 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
               >
                 {isSidebarOpen ? '×' : '☰'}
               </button>
-              {dashboard ? (
+            )}
+            {user && dashboard ? (
                 <span className="text-[10px] sm:text-sm md:text-base font-display font-bold tracking-[0.08em] uppercase text-[#f7f3eb]">
                   Holy Family Parish
                 </span>
-              ) : (
+              ) : user ? (
                 <Link
                   to="/"
                   className="text-[10px] sm:text-sm md:text-base font-display font-bold tracking-[0.08em] uppercase text-[#f7f3eb] transition-colors duration-200 hover:text-[#d7b57a]"
                 >
                   Holy Family Parish
                 </Link>
+              ) : (
+                <Link to="/" className="flex items-center gap-2 text-[#273746]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#c9a25c] text-[#b18a45]">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                      <path d="M4 20h16M6 20V10h12v10M4 10l8-6 8 6M9 20v-5h6v5M12 4v-2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M12 2v4M10.5 4h3" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <span className="leading-tight"><span className="block font-display text-sm font-bold sm:text-base">Holy Family Parish</span><span className="block text-[8px] uppercase tracking-[0.2em] text-[#9a8666]">Faith · Service · Community</span></span>
+                </Link>
               )}
-            </div>
-          )}
+          </div>
 
           <div className="flex-1 flex justify-center min-w-0">
             <div className="hidden sm:flex items-center justify-center gap-1 md:gap-7 lg:gap-10 px-1 md:px-4">
               {!user && (
                 <>
-                  <a
-                    href="/#home"
-                    className="px-3 py-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.22em] text-white/85 transition-all duration-200 hover:text-[#d7b57a] hover:translate-y-[-1px]"
-                  >
-                    {t('nav.home')}
-                  </a>
-                  <a
-                    href="/#services"
-                    className="px-3 py-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.22em] text-white/85 transition-all duration-200 hover:text-[#d7b57a] hover:translate-y-[-1px]"
-                  >
-                    {t('nav.services')}
-                  </a>
-                  <a
-                    href="/#about"
-                    className="px-3 py-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.22em] text-white/85 transition-all duration-200 hover:text-[#d7b57a] hover:translate-y-[-1px]"
-                  >
-                    {t('nav.about')}
-                  </a>
-                  <a
-                    href="/#contact"
-                    className="px-3 py-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.22em] text-white/85 transition-all duration-200 hover:text-[#d7b57a] hover:translate-y-[-1px]"
-                  >
-                    {t('nav.contact')}
-                  </a>
+                  {[
+                    ['/', t('nav.home')],
+                    ['/services', t('nav.services')],
+                    ['/about', t('nav.about')],
+                    ['/contact', t('nav.contact')],
+                  ].map(([to, label]) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      end={to === '/'}
+                      className={({ isActive }) =>
+                        `relative px-3 py-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.22em] transition-all duration-200 hover:-translate-y-0.5 hover:text-[#d7b57a] ${
+                          isActive ? 'text-[#a6813f] after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-[#c9a25c]' : 'text-[#58616a]'
+                        }`
+                      }
+                    >
+                      {label}
+                    </NavLink>
+                  ))}
                 </>
               )}
             </div>
           </div>
 
           {!user && mobileMenuOpen && (
-            <div className="absolute left-3 right-3 top-full mt-2 rounded-2xl border border-white/10 bg-[#0f2337] p-2 shadow-[0_18px_40px_rgba(6,14,22,0.24)] sm:hidden">
+            <div className="absolute left-3 right-3 top-full mt-2 rounded-2xl border border-[#e8dfd0] bg-[#fffdf8] p-2 shadow-[0_18px_40px_rgba(83,65,34,0.16)] sm:hidden">
               {[
-                ['/#home', t('nav.home')],
-                ['/#services', t('nav.services')],
-                ['/#about', t('nav.about')],
-                ['/#contact', t('nav.contact')],
+                ['/', t('nav.home')],
+                ['/services', t('nav.services')],
+                ['/about', t('nav.about')],
+                ['/contact', t('nav.contact')],
               ].map(([href, label]) => (
-                <a
+                <Link
                   key={href}
-                  href={href}
+                  to={href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-xl px-3 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/90 hover:bg-white/10 hover:text-[#d7b57a]"
+                  className="block rounded-xl px-3 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#58616a] hover:bg-[#f4ead8] hover:text-[#a6813f]"
                 >
                   {label}
-                </a>
+                </Link>
               ))}
             </div>
           )}
@@ -358,7 +365,7 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
                   <button
                     type="button"
                     onClick={() => setAccountOpen((value) => !value)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[#d7b57a]/80 bg-[#d7b57a] px-4 py-2.5 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-[#0f2337] shadow-[0_10px_22px_rgba(215,181,122,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#e0c07d]"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#c9a25c] bg-[#b18a45] px-4 py-2.5 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-[0_10px_22px_rgba(177,138,69,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#967338]"
                   >
                     <span>{t('nav.login')}</span>
                     <svg
@@ -372,8 +379,9 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
                     </svg>
                   </button>
 
-                  {accountOpen && (
-                    <div className="absolute left-1/2 right-auto mt-3 w-[min(22rem,calc(100vw-1.5rem))] -translate-x-1/2 overflow-hidden rounded-[26px] border border-[#e8dfd0] bg-white shadow-[0_26px_60px_rgba(15,31,45,0.18)] ring-1 ring-black/5 sm:left-auto sm:right-0 sm:w-[22rem] sm:translate-x-0">
+                  {false && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#14212b]/35 p-4 backdrop-blur-md" onClick={() => setAccountOpen(false)}>
+                      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#e8dfd0] bg-white shadow-[0_30px_80px_rgba(15,31,45,0.24)]" onClick={(event) => event.stopPropagation()}>
                       <div className="bg-gradient-to-r from-[#0f2337] via-[#12314b] to-[#1d4563] px-4 py-4 text-white">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
@@ -480,13 +488,14 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
                           </div>
                         </div>
                       </form>
+                      </div>
                     </div>
                   )}
                 </div>
 
                 <Link
                   to="/register"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/10"
+                  className="inline-flex items-center justify-center rounded-xl border border-[#d9ccb7] bg-white px-4 py-2.5 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-[#58616a] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#b18a45] hover:text-[#a6813f]"
                 >
                   {t('nav.register')}
                 </Link>
@@ -495,6 +504,8 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
           </div>
         </div>
       </div>
+
+      <LoginModal isOpen={accountOpen} onClose={() => setAccountOpen(false)} />
 
       <Modal isOpen={logoutConfirmOpen} onClose={() => setLogoutConfirmOpen(false)} title={t('nav.logoutTitle')} size="sm">
         <div className="flex flex-col items-center text-center">
