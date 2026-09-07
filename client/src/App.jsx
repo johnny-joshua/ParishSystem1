@@ -3,19 +3,29 @@ import { GuestRoute } from './routes/GuestRoute';
 import { UserRoute } from './routes/UserRoute';
 import { AdminRoute } from './routes/AdminRoute';
 import { AuthenticatedRoute } from './routes/AuthenticatedRoute';
-import Profile from './pages/Profile';
-import Notifications from './pages/Notifications';
-import Settings from './pages/Settings';
+
+// Public pages
 import Home from './pages/Home';
 import Services from './pages/Services';
 import About from './pages/About';
 import Contact from './pages/Contact';
+
+// Auth pages (guest-only)
 import Login from './pages/Login';
 import Register from './pages/Register';
+
+// Parishioner (user-role) pages
 import Dashboard from './pages/Dashboard';
 import MakeRequest from './pages/MakeRequest';
 import Reservation from './pages/Reservation';
 import Appointment from './pages/Appointment';
+
+// Shared authenticated pages (any role)
+import Profile from './pages/Profile';
+import Notifications from './pages/Notifications';
+import Settings from './pages/Settings';
+
+// Admin pages
 import AdminDashboard from './pages/AdminDashboard';
 import AdminReservations from './pages/admin/AdminReservations';
 import AdminAppointments from './pages/admin/AdminAppointments';
@@ -25,6 +35,10 @@ import Reports from './pages/admin/Reports';
 import SMSLogs from './pages/admin/SMSLogs';
 import ParishCalendar from './pages/admin/ParishCalendar';
 
+// Error / access pages
+import Unauthorized from './pages/Unauthorized';
+import NotFound from './pages/NotFound';
+
 export default function App() {
   return (
     <Routes>
@@ -32,6 +46,7 @@ export default function App() {
       <Route path="/services" element={<Services />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
+
       <Route
         path="/login"
         element={
@@ -81,6 +96,8 @@ export default function App() {
           </UserRoute>
         }
       />
+
+      {/* ── Shared authenticated routes (any role) ─────────────────── */}
       <Route
         path="/profile"
         element={
@@ -105,7 +122,6 @@ export default function App() {
           </AuthenticatedRoute>
         }
       />
-
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route
         path="/admin/dashboard"
@@ -172,7 +188,9 @@ export default function App() {
         }
       />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

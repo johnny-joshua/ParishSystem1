@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Auth Test</title>
 </head>
+
 <body>
     <h1>Authentication Test</h1>
     <button onclick="testLogin()">Test Login</button>
@@ -13,7 +15,7 @@
         async function testLogin() {
             const output = document.getElementById('output');
             output.innerHTML = 'Testing login...';
-            
+
             try {
                 const response = await fetch('/api/auth/login.php', {
                     method: 'POST',
@@ -26,7 +28,7 @@
                         password: 'admin123'
                     })
                 });
-                
+
                 const data = await response.json();
                 output.innerHTML = `
                     <h2>Login Response</h2>
@@ -43,13 +45,13 @@
         async function testMe() {
             const output = document.getElementById('output');
             output.innerHTML = 'Testing /api/auth/me.php...';
-            
+
             try {
                 const response = await fetch('/api/auth/me.php', {
                     method: 'GET',
                     credentials: 'include'
                 });
-                
+
                 const data = await response.json();
                 output.innerHTML = `
                     <h2>/api/auth/me.php Response</h2>
@@ -64,4 +66,5 @@
         }
     </script>
 </body>
+
 </html>

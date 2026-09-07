@@ -7,6 +7,27 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Endpoints where a 401 is an *expected* outcome (bad credentials on login,
+// or the initial "am I logged in?" probe) rather than evidence that a
+// previously-valid session just died mid-use. These must not trigger the
+// global session-expired handler below, or a normal failed login / the
+// first unauthenticated page load would look like a forced logout.
+const AUTH_PROBE_PATHS = ['/auth/login.php', '/auth/check.php', '/auth/me.php'];
+
+/**
+ * Registered by AuthProvider so this plain module can tell React "the
+ * session is gone" without importing AuthContext (which would create a
+ * circular dependency and duplicate state). Any 401 from any other endpoint
+ * means the session expired/was invalidated server-side — AuthProvider
+ * reacts by clearing user state, and ProtectedRoute/GuestRoute redirect
+ * accordingly on the next render. This is the single place that reacts to
+ * 401s; do not add ad-hoc logout-on-401 logic inside individual pages.
+ */
+let unauthorizedHandler = null;
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler;
+}
+
 api.interceptors.response.use(
   (res) => {
     const body = res.data;
@@ -16,11 +37,19 @@ api.interceptors.response.use(
     return res;
   },
   (err) => {
+    const status = err.response?.status;
+    const requestUrl = err.config?.url || '';
+    const isAuthProbe = AUTH_PROBE_PATHS.some((path) => requestUrl.includes(path));
+
+    if (status === 401 && !isAuthProbe && unauthorizedHandler) {
+      unauthorizedHandler();
+    }
+
     const message = err.response?.data?.message || 'An error occurred.';
     return Promise.reject({
       message,
       errors: err.response?.data?.errors,
-      status: err.response?.status,
+      status,
     });
   }
 );

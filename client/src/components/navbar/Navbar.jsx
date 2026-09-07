@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { getDashboardByRole, normalizeRole } from '../../utils/roleRedirect';
 import { useNotifications } from '../../context/NotificationContext';
 import { useSettings } from '../../context/SettingsContext';
 import Modal from '../forms/Modal';
@@ -86,7 +87,7 @@ export default function Navbar({ dashboard = false, isSidebarOpen = false, onSid
       }
 
       setAccountOpen(false);
-      navigate(loggedUser.role === 'admin' ? '/admin/dashboard' : '/dashboard', { replace: true });
+      navigate(getDashboardByRole(normalizeRole(loggedUser.role)), { replace: true });
     } catch (error) {
       setLoginError(error.message || 'Login failed.');
     } finally {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getDashboardByRole, normalizeRole } from '../utils/roleRedirect';
 import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 
@@ -12,18 +13,33 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // `from` is set by route guards when they redirect an unauthenticated user
+  // to /login; after a successful login we try to return them there (provided
+  // their role has permission — otherwise we fall back to their dashboard).
+  const from = location.state?.from;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const user = await login(email, password);
-      if (!user || !user.role) {
+      const loggedUser = await login(email, password);
+      if (!loggedUser || !loggedUser.role) {
         setError('Login failed: Invalid user data received.');
         return;
       }
-      navigate(user.role === 'admin' ? '/admin/dashboard' : '/dashboard', { replace: true });
+      const role = normalizeRole(loggedUser.role);
+      const defaultDashboard = getDashboardByRole(role);
+      // Return the user to the page they originally tried to visit (if any),
+      // but only if it is a sub-path matching their role — never blindly
+      // redirect to a path they may not be authorised to access.  When in
+      // doubt, send them to their own dashboard.
+      const canReturn =
+        from &&
+        ((role === 'admin' && from.startsWith('/admin')) ||
+          (role === 'user' && !from.startsWith('/admin')));
+      navigate(canReturn ? from : defaultDashboard, { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed.');
     } finally {

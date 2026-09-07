@@ -1,5 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe } from '../services/api';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import {
+  login as apiLogin,
+  register as apiRegister,
+  logout as apiLogout,
+  getMe,
+  setUnauthorizedHandler,
+} from '../services/api';
+import { normalizeRole } from '../utils/roleRedirect';
 
 const AuthContext = createContext(null);
 const USER_STORAGE_KEY = 'hf_parish_user';
@@ -9,9 +16,13 @@ function extractUser(res) {
   return payload?.user ?? payload?.data?.user ?? null;
 }
 
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
+
+  const checkInFlight = useRef(null);
 
   const saveUser = (userData) => {
     setUser(userData);
@@ -22,15 +33,26 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const loadUser = useCallback(async () => {
-    try {
-      const res = await getMe();
-      saveUser(extractUser(res));
-    } catch {
-      saveUser(null);
-    } finally {
-      setLoading(false);
-    }
+  const checkAuth = useCallback(() => {
+    if (checkInFlight.current) return checkInFlight.current;
+
+    const request = (async () => {
+      try {
+        const res = await getMe();
+        saveUser(extractUser(res));
+      } catch (err) {
+        const httpStatus = err?.status ?? err?.response?.status;
+        if (httpStatus === 401) {
+          saveUser(null);
+        }
+      } finally {
+        setLoading(false);
+        checkInFlight.current = null;
+      }
+    })();
+
+    checkInFlight.current = request;
+    return request;
   }, []);
 
   useEffect(() => {
@@ -42,14 +64,32 @@ export function AuthProvider({ children }) {
         sessionStorage.removeItem(USER_STORAGE_KEY);
       }
     }
-    loadUser();
-  }, [loadUser]);
+    checkAuth();
+  }, [checkAuth]);
+
+  const clearAuth = useCallback(() => {
+    saveUser(null);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      clearAuth();
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [clearAuth]);
 
   const login = async (email, password) => {
-    const res = await apiLogin({ email, password });
-    const userData = extractUser(res);
-    saveUser(userData);
-    return userData;
+    setAuthError(null);
+    try {
+      const res = await apiLogin({ email, password });
+      const userData = extractUser(res);
+      saveUser(userData);
+      return userData;
+    } catch (err) {
+      setAuthError(err.message || 'Login failed.');
+      throw err;
+    }
   };
 
   const register = async (formData) => {
@@ -57,7 +97,6 @@ export function AuthProvider({ children }) {
       ...formData,
       confirm_password: formData.confirm_password ?? formData.confirm,
     });
-    // Registration only creates the account; do not auto-authenticate the user.
     return extractUser(res);
   };
 
@@ -65,21 +104,32 @@ export function AuthProvider({ children }) {
     try {
       await apiLogout();
     } finally {
-      saveUser(null);
+      clearAuth();
     }
   };
+
+  const role = normalizeRole(user?.role);
 
   return (
     <AuthContext.Provider
       value={{
+        // Canonical shape.
         user,
-        loading,
+        role,
+        isAuthenticated: Boolean(user),
+        isLoading: loading,
+        authError,
         login,
-        register,
         logout,
-        isAdmin: user?.role === 'admin',
-        isUser: user?.role === 'user',
-        loadUser,
+        checkAuth,
+        refreshUser: checkAuth,
+        clearAuth,
+        register,
+        // Back-compat aliases already used across the app.
+        loading,
+        loadUser: checkAuth,
+        isAdmin: role === 'admin',
+        isUser: role === 'user',
       }}
     >
       {children}
